@@ -1,0 +1,33 @@
+{
+  "uri": "/*",
+  "hosts": ["sherifah.newfire.ai"],
+  "upstream": {
+    "type": "roundrobin",
+    "nodes": {"n8n-sherifah:5678": 1},
+    "scheme": "http",
+    "pass_host": "rewrite",
+    "upstream_host": "sherifah.newfire.ai"
+  },
+  "plugins": {
+    "key-auth": {},
+    "limit-req": {
+      "rate": 60,
+      "burst": 30,
+      "key_type": "var",
+      "key": "consumer_name",
+      "rejected_code": 429
+    },
+    "cors": {
+      "allow_origins": "https://sherifah.newfire.ai",
+      "allow_methods": "GET,POST,PUT,DELETE,PATCH,OPTIONS",
+      "allow_headers": "Content-Type,Authorization,apikey,X-Requested-With,Accept,Origin,sessionid,browser-id",
+      "allow_credential": true
+    },
+    "proxy-rewrite": {
+      "headers": {
+        "X-Forwarded-Proto": "https",
+        "X-Forwarded-Host": "sherifah.newfire.ai"
+      }
+    }
+  }
+}
