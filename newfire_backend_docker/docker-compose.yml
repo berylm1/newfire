@@ -1,0 +1,51 @@
+name: newfire-backend
+
+services:
+  backend:
+    build:
+      context: /home/newwaveclaw/newfire-backend
+      dockerfile: /home/newwaveclaw/newfire-backend-docker/Dockerfile
+    image: newfire-backend:1.6.0
+    container_name: newfire-backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      OPENROUTER_KEY: ${OPENROUTER_KEY}
+      OPENCLAW_URL: ${OPENCLAW_URL:-http://172.17.0.1:18789}
+      OPENCLAW_TOKEN: ${OPENCLAW_TOKEN}
+      APISIX_ADMIN_URL: ${APISIX_ADMIN_URL:-http://172.17.0.1:9180}
+      APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY}
+      OLLAMA_URL: ${OLLAMA_URL:-http://100.88.112.5:11434}
+      QDRANT_URL: ${QDRANT_URL:-http://100.88.112.5:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      RAG_TOP_K: ${RAG_TOP_K:-3}
+      ONBOARDING_MODEL: ${ONBOARDING_MODEL:-glm4:9b}
+      CLIENT_RATE_LIMIT_RPS: ${CLIENT_RATE_LIMIT_RPS:-20}
+      CLIENT_RATE_LIMIT_BURST: ${CLIENT_RATE_LIMIT_BURST:-40}
+      CLIENT_DAILY_QUOTA: ${CLIENT_DAILY_QUOTA:-1000}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3200
+      NODE_ENV: production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - newfire_backend_net
+      - newfire_shared
+
+networks:
+  newfire_backend_net:
+    name: newfire_backend_net
+    driver: bridge
+  newfire_shared:
+    name: newfire_shared
+    external: true

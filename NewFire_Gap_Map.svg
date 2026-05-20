@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .title { font-size: 32px; font-weight: 700; fill: #1a1a2e; }
+      .subtitle { font-size: 16px; fill: #555; }
+      .layer-title { font-size: 20px; font-weight: 700; fill: #fff; }
+      .item { font-size: 14px; fill: #222; }
+      .item-done { font-size: 14px; fill: #0a7d2b; font-weight: 600; }
+      .item-partial { font-size: 14px; fill: #b8860b; font-weight: 600; }
+      .item-gap { font-size: 14px; fill: #c21807; font-weight: 700; }
+      .legend { font-size: 14px; fill: #222; }
+      .footer { font-size: 13px; fill: #555; font-style: italic; }
+      .priority-num { font-size: 18px; font-weight: 700; fill: #fff; }
+      .priority-text { font-size: 14px; fill: #1a1a2e; font-weight: 600; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1100" fill="#f5f5f0"/>
+
+  <text x="800" y="50" text-anchor="middle" class="title">NewFire AI Homelab Gap Map</text>
+  <text x="800" y="78" text-anchor="middle" class="subtitle">8-layer framework mapped against current build state (April 20, 2026)</text>
+
+  <g transform="translate(40, 110)">
+    <rect width="200" height="32" rx="4" fill="#0a7d2b"/>
+    <text x="12" y="22" class="layer-title" font-size="14">DONE</text>
+    <circle cx="100" cy="16" r="6" fill="#fff"/>
+
+    <rect x="220" width="200" height="32" rx="4" fill="#b8860b"/>
+    <text x="232" y="22" class="layer-title" font-size="14">PARTIAL / PLANNED</text>
+
+    <rect x="440" width="200" height="32" rx="4" fill="#c21807"/>
+    <text x="452" y="22" class="layer-title" font-size="14">GAP</text>
+  </g>
+
+  <g transform="translate(40, 170)">
+    <rect width="370" height="210" rx="8" fill="#fff" stroke="#4a9d5f" stroke-width="3"/>
+    <rect width="370" height="36" rx="8" fill="#4a9d5f"/>
+    <text x="15" y="25" class="layer-title">1. Fundamentals</text>
+    <text x="15" y="62" class="item-done">+ Tokens, model, prompt</text>
+    <text x="15" y="84" class="item-done">+ Context window</text>
+    <text x="15" y="106" class="item-done">+ Temperature, parameters</text>
+    <text x="15" y="140" class="legend">Conceptual layer. Fluency present.</text>
+    <text x="15" y="160" class="legend">No infra mapping needed.</text>
+  </g>
+
+  <g transform="translate(430, 170)">
+    <rect width="370" height="210" rx="8" fill="#fff" stroke="#c21807" stroke-width="3"/>
+    <rect width="370" height="36" rx="8" fill="#c21807"/>
+    <text x="15" y="25" class="layer-title">2. Data  [BIGGEST GAP]</text>
+    <text x="15" y="62" class="item-done">+ Embedding: nomic-embed-text</text>
+    <text x="15" y="84" class="item-gap">- Vector DB: MISSING</text>
+    <text x="15" y="106" class="item-gap">- Knowledge DB: MISSING</text>
+    <text x="15" y="128" class="item-gap">- RAG pipeline: MISSING</text>
+    <text x="15" y="150" class="item">  Fine-tuning: not needed yet</text>
+    <text x="15" y="182" class="footer">Funmi legal research is crippled</text>
+    <text x="15" y="200" class="footer">without a knowledge filing cabinet.</text>
+  </g>
+
+  <g transform="translate(820, 170)">
+    <rect width="370" height="210" rx="8" fill="#fff" stroke="#b8860b" stroke-width="3"/>
+    <rect width="370" height="36" rx="8" fill="#b8860b"/>
+    <text x="15" y="25" class="layer-title">3. Intelligence Layer</text>
+    <text x="15" y="62" class="item-done">+ System prompts (Paperclip)</text>
+    <text x="15" y="84" class="item-gap">- Persistent memory: MISSING</text>
+    <text x="15" y="106" class="item-partial">~ Multimodal: Whisper only</text>
+    <text x="15" y="128" class="item-partial">~ Guardrails: Warden planned</text>
+    <text x="15" y="160" class="footer">Every conversation starts cold.</text>
+    <text x="15" y="180" class="footer">No long-term client memory.</text>
+  </g>
+
+  <g transform="translate(1210, 170)">
+    <rect width="350" height="210" rx="8" fill="#fff" stroke="#0a7d2b" stroke-width="3"/>
+    <rect width="350" height="36" rx="8" fill="#0a7d2b"/>
+    <text x="15" y="25" class="layer-title">4. Models and Providers</text>
+    <text x="15" y="62" class="item-done">+ Ollama local (gemma, glm4,</text>
+    <text x="15" y="80" class="item-done">   deepseek-r1, qwen)</text>
+    <text x="15" y="102" class="item-done">+ OpenRouter (Claude, GLM-5.1,</text>
+    <text x="15" y="120" class="item-done">   minimax, DeepSeek)</text>
+    <text x="15" y="142" class="item-done">+ Smart routing via OpenClaw</text>
+    <text x="15" y="164" class="item-done">+ Whisper voice on DGX</text>
+    <text x="15" y="195" class="footer">Strongest layer. Match board.</text>
+  </g>
+
+  <g transform="translate(40, 400)">
+    <rect width="370" height="250" rx="8" fill="#fff" stroke="#b8860b" stroke-width="3"/>
+    <rect width="370" height="36" rx="8" fill="#b8860b"/>
+    <text x="15" y="25" class="layer-title">5. Infrastructure and Connectivity</text>
+    <text x="15" y="62" class="item-done">+ API: APISIX gateway</text>
+    <text x="15" y="84" class="item-gap">- Webhooks: MISSING</text>
+    <text x="15" y="106" class="item-partial">~ Endpoints: Caddy + zrok2 WIP</text>
+    <text x="15" y="128" class="item-gap">- MCP: MISSING</text>
+    <text x="15" y="150" class="item-done">+ Function calling (gog, exec)</text>
+    <text x="15" y="172" class="item-gap">- Client SDK: MISSING</text>
+    <text x="15" y="210" class="footer">System is reachable but not reactive.</text>
+    <text x="15" y="230" class="footer">No event-driven triggers from clients.</text>
+  </g>
+
+  <g transform="translate(430, 400)">
+    <rect width="370" height="250" rx="8" fill="#fff" stroke="#b8860b" stroke-width="3"/>
+    <rect width="370" height="36" rx="8" fill="#b8860b"/>
+    <text x="15" y="25" class="layer-title">6. Agents and Automation</text>
+    <text x="15" y="62" class="item-done">+ Agent (OpenClaw)</text>
+    <text x="15" y="84" class="item-done">+ Orchestration</text>
+    <text x="15" y="106" class="item-partial">~ Multi-agent: Claude Corp planned</text>
+    <text x="15" y="128" class="item-partial">~ CongaLine: Apr 19-20</text>
+    <text x="15" y="150" class="item-gap">- Human-in-the-loop: MISSING</text>
+    <text x="15" y="172" class="item-done">+ Tool use (webdav, gog)</text>
+    <text x="15" y="210" class="footer">HITL is a compliance risk for</text>
+    <text x="15" y="230" class="footer">Funmi legal drafts.</text>
+  </g>
+
+  <g transform="translate(820, 400)">
+    <rect width="370" height="250" rx="8" fill="#fff" stroke="#c21807" stroke-width="3"/>
+    <rect width="370" height="36" rx="8" fill="#c21807"/>
+    <text x="15" y="25" class="layer-title">7. No-Code Builder  [2nd BIGGEST GAP]</text>
+    <text x="15" y="62" class="item-gap">- Zapier: NOT INTEGRATED</text>
+    <text x="15" y="84" class="item-gap">- Make: NOT INTEGRATED</text>
+    <text x="15" y="106" class="item-gap">- n8n: NOT DEPLOYED</text>
+    <text x="15" y="128" class="item-gap">- VoiceFlow: NOT INTEGRATED</text>
+    <text x="15" y="150" class="item-gap">- Flowwise (for RAG): MISSING</text>
+    <text x="15" y="172" class="item">  Cursor: dev-side only</text>
+    <text x="15" y="210" class="footer">Clients cannot self-serve workflows.</text>
+    <text x="15" y="230" class="footer">Every change is a ticket to you.</text>
+  </g>
+
+  <g transform="translate(1210, 400)">
+    <rect width="350" height="250" rx="8" fill="#fff" stroke="#b8860b" stroke-width="3"/>
+    <rect width="350" height="36" rx="8" fill="#b8860b"/>
+    <text x="15" y="25" class="layer-title">8. Business Layer</text>
+    <text x="15" y="62" class="item-done">+ Use case: Sherifah, Funmi</text>
+    <text x="15" y="84" class="item-gap">- ROI dashboard: MISSING</text>
+    <text x="15" y="106" class="item-partial">~ Prompt engineering: no versioning</text>
+    <text x="15" y="128" class="item-done">+ AI stack documented</text>
+    <text x="15" y="150" class="item-gap">- AI avatars / personas: MISSING</text>
+    <text x="15" y="172" class="item-done">+ AI strategy: Launch Plan</text>
+    <text x="15" y="210" class="footer">Cannot prove value without</text>
+    <text x="15" y="230" class="footer">hours-saved or dollar-saved metrics.</text>
+  </g>
+
+  <g transform="translate(40, 690)">
+    <rect width="1520" height="370" rx="10" fill="#1a1a2e"/>
+    <text x="760" y="40" text-anchor="middle" class="title" fill="#fff">Priority Order: Build Wisely</text>
+
+    <g transform="translate(40, 70)">
+      <circle cx="30" cy="30" r="22" fill="#c21807"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">1</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">Vector DB + RAG</text>
+      <text x="72" y="50" class="item" font-size="12">Qdrant, ~1 day, unblocks Funmi</text>
+    </g>
+
+    <g transform="translate(380, 70)">
+      <circle cx="30" cy="30" r="22" fill="#c21807"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">2</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">No-Code Builder (n8n)</text>
+      <text x="72" y="50" class="item" font-size="12">Embed inside Paperclip dashboard</text>
+    </g>
+
+    <g transform="translate(720, 70)">
+      <circle cx="30" cy="30" r="22" fill="#c21807"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">3</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">Webhooks Layer</text>
+      <text x="72" y="50" class="item" font-size="12">Inbound triggers (email, forms, CRM)</text>
+    </g>
+
+    <g transform="translate(1060, 70)">
+      <circle cx="30" cy="30" r="22" fill="#c21807"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">4</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">HITL Approval Queue</text>
+      <text x="72" y="50" class="item" font-size="12">Required before Funmi goes live</text>
+    </g>
+
+    <g transform="translate(40, 160)">
+      <circle cx="30" cy="30" r="22" fill="#b8860b"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">5</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">Persistent Memory</text>
+      <text x="72" y="50" class="item" font-size="12">Cross-session client context</text>
+    </g>
+
+    <g transform="translate(380, 160)">
+      <circle cx="30" cy="30" r="22" fill="#b8860b"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">6</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">ROI Dashboard</text>
+      <text x="72" y="50" class="item" font-size="12">Grafana: hours + dollars saved</text>
+    </g>
+
+    <g transform="translate(720, 160)">
+      <circle cx="30" cy="30" r="22" fill="#b8860b"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">7</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">MCP Server</text>
+      <text x="72" y="50" class="item" font-size="12">Future-proof integrations</text>
+    </g>
+
+    <g transform="translate(1060, 160)">
+      <circle cx="30" cy="30" r="22" fill="#b8860b"/>
+      <text x="30" y="37" text-anchor="middle" class="priority-num">8</text>
+      <rect x="60" y="10" width="260" height="50" rx="6" fill="#fff"/>
+      <text x="72" y="32" class="priority-text">AI Avatars / Personas</text>
+      <text x="72" y="50" class="item" font-size="12">Sherifah receptionist voice + face</text>
+    </g>
+
+    <text x="760" y="320" text-anchor="middle" fill="#fff" font-size="14" font-style="italic">
+      Red = critical path before May 1 launch.  Gold = polish and scale after pilot goes live.
+    </text>
+    <text x="760" y="342" text-anchor="middle" fill="#ccc" font-size="12">
+      Generated 2026-04-20 from whiteboard framework mapped against current homelab state.
+    </text>
+  </g>
+</svg>
