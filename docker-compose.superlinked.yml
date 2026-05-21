@@ -1,0 +1,49 @@
+version: "3.9"
+services:
+  superlinked-rag:
+    build: { context: ../superlinked_rag, dockerfile: Dockerfile }
+    image: newfire/superlinked-rag:0.1
+    container_name: superlinked-rag
+    restart: unless-stopped
+    ports: ["8200:8200"]
+    environment:
+      EMBED_URL: "http://sie:8089/embed"
+      EMBED_MODEL: "bge-m3"
+      EMBED_DIM: "1024"
+      REDIS_HOST: "redis-rag"
+      REDIS_PORT: "6379"
+    depends_on:
+      redis-rag: { condition: service_healthy }
+    networks: [newfire_net]
+    volumes: ["/data/tenants:/data/tenants:ro"]
+
+  redis-rag:
+    image: redis/redis-stack-server:7.2.0-v10
+    container_name: redis-rag
+    restart: unless-stopped
+    command: ["redis-stack-server","--appendonly","yes","--save","60","1000"]
+    volumes: ["redis_rag_data:/data"]
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [newfire_net]
+
+  rag-ingest-worker:
+    build: { context: ../superlinked_rag, dockerfile: Dockerfile.worker }
+    container_name: rag-ingest-worker
+    restart: unless-stopped
+    environment:
+      RAG_API: "http://superlinked-rag:8200"
+      WATCH_ROOT: "/data/tenants"
+    volumes: ["/data/tenants:/data/tenants"]
+    depends_on: [superlinked-rag]
+    networks: [newfire_net]
+
+volumes:
+  redis_rag_data:
+
+networks:
+  newfire_net:
+    external: true
