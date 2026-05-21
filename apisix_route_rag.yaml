@@ -1,0 +1,24 @@
+# APISIX declarative route for the Superlinked RAG service.
+# Apply via: adc sync -f apisix_route_rag.yaml
+# Or POST to Admin API: curl http://apisix:9180/apisix/admin/routes
+_format_version: "3.0"
+
+routes:
+  - id: rag-route
+    name: rag-route
+    uri: /rag/*
+    plugins:
+      key-auth:
+        header: apikey
+      proxy-rewrite:
+        headers:
+          set:
+            # Inject the APISIX consumer name so the RAG service can enforce
+            # per-tenant isolation without trusting the caller-supplied header.
+            X-Consumer-Username: "$consumer_name"
+    upstream:
+      type: roundrobin
+      nodes:
+        "superlinked-rag:8200": 1
+      scheme: http
+      pass_host: pass

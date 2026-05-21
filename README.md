@@ -1,65 +1,94 @@
-# NewFire
+# Superlinked RAG Service
 
-NewFire is a two-machine AI homelab that hosts the NewFire AI platform. It pairs a Minisforum X1 Pro 370 (control plane) with an NVIDIA DGX Spark (GPU compute) to run local LLMs, agent orchestrators, and tenant-aware API metering for production workloads.
+FastAPI service providing multi-modal retrieval-augmented generation for legal documents, running on port 8200.
 
-Target launch: **May 1, 2026.**
+## Why Superlinked over Qdrant for legal documents
 
-## Architecture at a Glance
+Qdrant is a pure vector store: you get text similarity and nothing else out of the box. For immigration law, relevance is shaped by at least three orthogonal signals that must be composed at query time.
 
-| Role | Machine | Specs | Primary Services |
-|------|---------|-------|------------------|
-| Control Plane | Minisforum X1 Pro 370 | Ryzen AI 9 HX 370, 96 GB DDR5, 2 TB NVMe | OpenClaw, APISIX, OpenHands, OpenCode, Ollama (CPU) |
-| Compute Engine | NVIDIA DGX Spark | GB10 Grace Blackwell, 128 GB unified, 4 TB NVMe | NemoClaw, Ollama (GPU), vLLM, model workers |
+Superlinked bakes those signals directly into the index through typed spaces:
 
-The two nodes connect over 1 Gbps LAN (192.168.1.157 and 192.168.1.158) and are remoted via Tailscale plus a self-hosted zrok2 + OpenZiti overlay. OpenRouter is wired in as a fallback cloud LLM gateway.
+| Signal | Space | Weight (default) |
+|---|---|---|
+| Semantic text match | TextSimilaritySpace (bge-m3, 1024-dim) | 0.55 |
+| Document recency | RecencySpace with 1y/3y/10y half-life tiers | 0.25 |
+| Jurisdiction affinity | CategoricalSimilaritySpace (20 jurisdictions) | 0.12 |
+| Document type preference | CategoricalSimilaritySpace (6 types) | 0.08 |
 
-See `AI_Homelab_Architecture.png` / `.svg` / `.pdf` for the full diagram.
+A 2024 BIA precedent decision will outrank an equally-relevant 2018 case automatically, without requiring application-level re-ranking logic. Callers can shift weights per query (e.g. bump `w_recency` for time-sensitive motions) without re-indexing.
 
-## Documentation
+## Bring-up steps
 
-The numbered docs in this repo walk through the build in order:
+**Prerequisites:** Docker with Compose v2, the `newfire_net` external network already created, and `/data/tenants/<tenant>/incoming/` writable.
 
-1. [`00_OVERVIEW.md`](00_OVERVIEW.md) Architecture overview, hardware roles, software stack, network layout
-2. [`01_DGX_SPARK_RECOVERY.md`](01_DGX_SPARK_RECOVERY.md) Recovery procedure for the DGX Spark node
-3. [`02_MINISFORUM_UPGRADE.md`](02_MINISFORUM_UPGRADE.md) Minisforum upgrade and hardening steps
-4. [`03_INTEGRATION_PATTERNS.md`](03_INTEGRATION_PATTERNS.md) Cross-node integration patterns (ACP, webhooks, message bus)
-5. [`04_DGX_SPARK_SETUP.md`](04_DGX_SPARK_SETUP.md) Fresh setup for the DGX Spark
-6. [`05_OPENROUTER_INTEGRATION.md`](05_OPENROUTER_INTEGRATION.md) OpenRouter proxy and key management
-7. [`06_APISIX_METERING.md`](06_APISIX_METERING.md) APISIX gateway with per-tenant metering
-8. [`07_RESOURCE_ALLOCATION.md`](07_RESOURCE_ALLOCATION.md) CPU, RAM, and VRAM budgets per service
-9. [`08_CHECKLIST.md`](08_CHECKLIST.md) Pre-launch checklist
+```bash
+# Create the overlay network if it does not exist yet
+docker network create newfire_net 2>/dev/null || true
 
-Supporting material:
+# Build and start all three services
+docker compose -f docker-compose.superlinked.yml up -d
 
-- `NewFire_Gap_Map.svg`, `NewFire_Gap_Graph.svg` Eight-layer framework gap map (data and no-code builder are the largest current gaps)
-- `blueprint/` Canonical AI Operating System blueprint (8 layers, 5 agents, 7 maturity levels)
-- `progress/` Per-initiative progress logs that resume across sessions
-- `scripts/` Operational scripts for both nodes
-- `newfire_backend_docker/` Backend service that coordinates Paperclip, OpenClaw, APISIX, and NemoClaw with smart routing
-- `newfire-db-backup-20260417.sql` Database snapshot from 2026-04-17
+# Tail logs to confirm startup check passes
+docker logs -f superlinked-rag
+```
 
-## Software Stack
+The API is ready when you see `Application startup complete` in the logs. The embed fingerprint check runs at boot and will abort with a clear error if the SIE model or dimension does not match the stored fingerprint.
 
-| Component | Purpose | Host | Port |
-|-----------|---------|------|------|
-| OpenClaw | Multi-agent orchestrator and gateway | Minisforum | 18789 |
-| OpenHands | Browser-based AI dev agent | Both | 3000 |
-| OpenCode | AI coding agent | Both | 3002 / 3030 |
-| Ollama | Local LLM serving | Both | 11434 |
-| vLLM | High-throughput GPU inference | DGX Spark | varies |
-| NemoClaw | Tenant isolation and model management | DGX Spark | varies |
-| APISIX | API gateway with metering | Minisforum | 9080 / 9443 |
-| SIE | Embeddings and reranking (bge-m3, bge-reranker-v2-m3) | Minisforum | 8089 |
-| OpenRouter | Cloud LLM fallback gateway | Cloud | n/a |
+## Smoke test
 
-## Current Status
+```bash
+export RAG_BASE=http://localhost:8200
+export TENANT=funmi
+bash scripts/smoke_test.sh
+```
 
-The platform is live at **newfire.app** with four real tenants onboarded. Active workstreams include the NewFire Sandbox Service (NSS) for isolated agent runtimes, OpenClaw v1 as the coordinator surface, and vLLM tuning on the GB10 for the qwen3-coder-30b NVFP4 build.
+Expected output:
 
-## Security
+```
+=== healthz ===
+OK (200)
+=== ingest ===
+Ingest response: {"tenant_id":"funmi","source_doc":"smoke_test.txt","chunks_ingested":1,"skipped":false}
+OK (chunks=1 skipped=False)
+=== query ===
+OK (results=1)
+=== all checks passed ===
+```
 
-Every service is fronted by Tailscale or zrok2 + OpenZiti. No service is exposed on the public internet without an authenticated tunnel. Backups are encrypted, tenant data is scoped, and the immigration-law tenant runs against local-only models.
+Quick manual healthcheck:
 
-## License
+```bash
+curl http://localhost:8200/healthz
+```
 
-Not yet specified. All material in this repository is proprietary to the NewFire project until a license is added.
+## Three pitfalls (verbatim from architecture blueprint)
+
+### Pitfall 1: Embedding dimension drift (bge-m3=1024 vs nomic=768)
+
+Superlinked bakes dim into index on first write. If anyone "temporarily" repoints EMBED_URL to Ollama during SIE outage, vectors become silently unsearchable garbage; error surfaces only as poor relevance. **Mitigation:** fail-closed at startup. Fetch SIE healthz, assert model name and dim. Store `rag:embed:fingerprint` in Redis on first ingest; refuse boot on mismatch. Never implement runtime fallback.
+
+### Pitfall 2: tenant_id as filter is not enough
+
+Even with `.filter(tenant_id==...)`, ANN search ranks across all tenants first then filters, leaking recall budget and risking fewer than top_k results on small tenants. **Mitigation:** per-tenant Redis index namespace (`index_name=f"legal_{tenant_id}"`). One executor per tenant, lazy-loaded dict. Tenant deletion equals `FT.DROPINDEX` (GDPR-friendly).
+
+### Pitfall 3: RecencySpace with missing dates collapses ranking
+
+Half of immigration corpus (memos, policy PDFs) have no machine-readable date. Superlinked treats `0`/`None` as epoch 1970, dropping docs below the negative_filter floor and they vanish even on perfect text match. **Mitigation:** in ingest worker, default missing `date_filed` to **file mtime** (not epoch, not now). Flag `date_inferred=true` in citation. Use `negative_filter=-0.5` (not `-1.0`) so undated docs remain retrievable on high text sim.
+
+## File layout
+
+```
+superlinked_rag/
+  app/
+    schema.py       Superlinked spaces and index definition
+    embed.py        SIE client and startup fingerprint check
+    ingest.py       Chunking, PDF extraction, idempotency manifest
+    api.py          FastAPI endpoints (/rag/query, /rag/ingest, /healthz)
+    worker.py       Polling filesystem watcher for /data/tenants/*/incoming/
+  Dockerfile        API container (uvicorn on :8200)
+  Dockerfile.worker Worker container (polling loop)
+  requirements.txt  Pinned Python dependencies
+docker-compose.superlinked.yml  Overlay compose file
+apisix_route_rag.yaml           APISIX route with key-auth
+scripts/smoke_test.sh           End-to-end health check
+```
