@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
          -o /usr/local/bin/ttyd \
     && chmod +x /usr/local/bin/ttyd \
     && npm install -g codeep@2.1.1 \
-    && npm cache clean --force
+    && npm cache clean --force \
+    && sed -i "/if (config.get('maxTokens') < 32768)/,/^}$/d" /usr/local/lib/node_modules/codeep/dist/config/index.js
 
 RUN mkdir -p /workspace /home/node/.config/codeep /home/node/.config/codeep-nodejs \
     && chown -R node:node /workspace /home/node/.config
