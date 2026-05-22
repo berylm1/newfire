@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NewFire Developer Hub</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%23ff6b35' d='M32 4c0 10-12 14-12 28a12 12 0 0024 0c0-10-8-14-12-28z'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --panel: #15181d;
+      --panel-2: #1c2026;
+      --border: #2a2f37;
+      --text: #e8eaed;
+      --muted: #8a93a0;
+      --accent: #ff6b35;
+      --accent-2: #ffb347;
+      --ok: #4ade80;
+      --warn: #facc15;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+
+    header {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 56px 24px 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .brand-mark {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; color: #1a1208;
+    }
+    h1 { font-size: 28px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+    .tagline { color: var(--muted); margin: 8px 0 0; font-size: 15px; line-height: 1.55; max-width: 640px; }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 12px 24px 64px;
+    }
+    .section-label {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 32px 0 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 18px 16px;
+      transition: border-color 0.15s, transform 0.15s, background 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 168px;
+    }
+    .card:hover { border-color: var(--accent); background: var(--panel-2); }
+    .card-head { display: flex; align-items: center; gap: 12px; }
+    .icon {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .card-title { font-size: 16px; font-weight: 600; margin: 0; }
+    .card-host { color: var(--muted); font-size: 12px; margin: 0; font-family: ui-monospace, SFMono-Regular, monospace; }
+    .card-desc { color: var(--muted); font-size: 13.5px; line-height: 1.5; flex: 1; margin: 0; }
+    .card-foot { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(74, 222, 128, 0.12);
+      color: var(--ok);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      font-weight: 500;
+    }
+    .tag.warn { background: rgba(250, 204, 21, 0.1); color: var(--warn); border-color: rgba(250, 204, 21, 0.25); }
+    .tag.muted { background: rgba(138, 147, 160, 0.08); color: var(--muted); border-color: rgba(138, 147, 160, 0.2); }
+    .arrow { margin-left: auto; color: var(--muted); font-size: 18px; }
+    .card:hover .arrow { color: var(--accent); }
+
+    .card.coming { opacity: 0.55; pointer-events: none; }
+
+    footer {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 24px 40px;
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    footer a { color: var(--muted); border-bottom: 1px dotted var(--border); }
+    footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-mark">N</div>
+      <h1>NewFire Developer Hub</h1>
+    </div>
+    <p class="tagline">
+      Entry point for developers working on the NewFire platform.
+      Every tool below sits behind Cloudflare Access; you may be asked to verify by email before reaching the destination.
+    </p>
+  </header>
+
+  <main>
+    <div class="section-label">Coding agents</div>
+    <div class="grid">
+
+      <a class="card" href="https://codeep.newfire.app/" target="_blank" rel="noopener">
+        <div class="card-head">
+          <div class="icon">C</div>
+          <div>
+            <p class="card-title">Codeep</p>
+            <p class="card-host">codeep.newfire.app</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">Web TUI coding agent. Persistent tmux session, backed by qwen3-coder-30b on the DGX vLLM.</p>
+        <div class="card-foot">
+          <span class="tag">CF Access</span>
+          <span class="tag muted">ttyd + tmux</span>
+        </div>
+      </a>
+
+      <a class="card" href="https://opencode.newfire.app/" target="_blank" rel="noopener">
+        <div class="card-head">
+          <div class="icon">O</div>
+          <div>
+            <p class="card-title">OpenCode</p>
+            <p class="card-host">opencode.newfire.app</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">OpenCode 1.15.4 web UI. Browser IDE backed by qwen3-coder-30b. Workspace persisted to CephFS.</p>
+        <div class="card-foot">
+          <span class="tag">CF Access</span>
+          <span class="tag muted">Web IDE</span>
+        </div>
+      </a>
+
+      <a class="card" href="https://openhands.newfire.app/" target="_blank" rel="noopener">
+        <div class="card-head">
+          <div class="icon">H</div>
+          <div>
+            <p class="card-title">OpenHands</p>
+            <p class="card-host">openhands.newfire.app</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">Autonomous agent with GPU access on the DGX Spark. Use for multi-step research and refactor tasks.</p>
+        <div class="card-foot">
+          <span class="tag">CF Access</span>
+          <span class="tag muted">Autonomous</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-label">Workspace and files</div>
+    <div class="grid">
+
+      <a class="card" href="https://workspace.newfire.app/" target="_blank" rel="noopener">
+        <div class="card-head">
+          <div class="icon">W</div>
+          <div>
+            <p class="card-title">Workspace</p>
+            <p class="card-host">workspace.newfire.app</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">Filebrowser over the shared CephFS workspace. Browse, upload, download project files.</p>
+        <div class="card-foot">
+          <span class="tag warn">App login</span>
+          <span class="tag muted">Filebrowser</span>
+        </div>
+      </a>
+
+      <a class="card" href="https://files.newfire.app/" target="_blank" rel="noopener">
+        <div class="card-head">
+          <div class="icon">F</div>
+          <div>
+            <p class="card-title">WebDAV</p>
+            <p class="card-host">files.newfire.app</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">WebDAV mount for the workspace tree. Use from Finder, Windows Explorer, or sync clients.</p>
+        <div class="card-foot">
+          <span class="tag muted">WebDAV</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="section-label">Platform APIs</div>
+    <div class="grid">
+
+      <a class="card" href="https://api.newfire.app/" target="_blank" rel="noopener">
+        <div class="card-head">
+          <div class="icon">A</div>
+          <div>
+            <p class="card-title">API Gateway</p>
+            <p class="card-host">api.newfire.app</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">APISIX gateway for the platform. Use per-tenant consumer keys; rate limiting and metering enforced here.</p>
+        <div class="card-foot">
+          <span class="tag muted">APISIX</span>
+        </div>
+      </a>
+
+      <div class="card coming">
+        <div class="card-head">
+          <div class="icon">S</div>
+          <div>
+            <p class="card-title">Sandboxes</p>
+            <p class="card-host">dev.newfire.app/sandboxes</p>
+          </div>
+          <span class="arrow">&rarr;</span>
+        </div>
+        <p class="card-desc">Ephemeral GPU sandboxes via NSS. Coming online after PR 3 (runner agent on DGX).</p>
+        <div class="card-foot">
+          <span class="tag warn">Coming soon</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    <span>NewFire platform &middot; Minisforum control plane + DGX Spark compute</span>
+    <span>Issues to the NewFire admin</span>
+  </footer>
+</body>
+</html>

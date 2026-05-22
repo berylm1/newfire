@@ -1,0 +1,91 @@
+tunnel: d0f9998f-73ee-4c64-a259-0f09a65d9856
+credentials-file: /home/newwaveclaw/.cloudflared/d0f9998f-73ee-4c64-a259-0f09a65d9856.json
+
+ingress:
+  # Main site and app
+  - hostname: newfire.app
+    service: http://localhost:4000
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: false
+
+  - hostname: app.newfire.app
+    service: http://localhost:4000
+
+  # Developer portal (current basic-auth nginx -> OpenHands; replaced by NSS dev-portal in PR 2)
+  - hostname: dev.newfire.app
+    service: http://localhost:4003
+
+  # API gateway (longer timeout for model inference)
+  - hostname: api.newfire.app
+    service: http://localhost:9080
+    originRequest:
+      connectTimeout: 120s
+      noTLSVerify: false
+
+  # Paperclip AI dashboard
+  - hostname: dash.newfire.app
+    service: http://localhost:3100
+
+  # WebDAV file sharing
+  - hostname: files.newfire.app
+    service: http://localhost:18789
+
+
+  # n8n per-client (Sherifah)
+  - hostname: sherifah.newfire.app
+    service: http://localhost:9080
+
+  # n8n per-client (beryl)
+  - hostname: beryl.newfire.app
+    service: http://localhost:5680
+
+  # n8n per-client (pawsomeai-assistance)
+  - hostname: pawsomeai-assistance.newfire.app
+    service: http://localhost:5681
+
+  # OpenCode web UI (basic-auth gated)
+  - hostname: code.newfire.app
+    service: http://localhost:4002
+
+  # OpenHands web UI - admin-only, gated by Cloudflare Zero Trust Access policy.
+  # Restored 2026-05-15 after openhands-dgx was brought back up on :3000.
+  - hostname: openhands.newfire.app
+    service: http://localhost:3000
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: true
+
+  # NSS preview URLs (free-tier first-level pattern; sbx-* prefix enforced at NSS application layer in PR 4. Catches any *.newfire.app not matched above.)
+  - hostname: metrics.newfire.app
+    service: http://localhost:3399
+    originRequest:
+      connectTimeout: 30s
+
+  # OpenCode (1.15.4 docker, vLLM-backed) gated by Cloudflare Access policy.
+  - hostname: opencode.newfire.app
+    service: http://localhost:3030
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: true
+
+  # Filebrowser (workspace tree UI) gated by CF Access policy.
+  - hostname: workspace.newfire.app
+    service: http://localhost:8042
+    originRequest:
+      connectTimeout: 15s
+
+  # Codeep TUI via ttyd (web terminal). Gated by CF Access policy.
+  # Container 'codeep' publishes 127.0.0.1:7681 -> ttyd -> tmux session 'codeep' -> codeep CLI.
+  - hostname: codeep.newfire.app
+    service: http://localhost:7681
+    originRequest:
+      connectTimeout: 15s
+
+  - hostname: "*.newfire.app"
+    service: http://localhost:3398
+    originRequest:
+      connectTimeout: 10s
+
+  # Catch-all (required) - reached only when Host header does not match newfire.app zone
+  - service: http_status:404
