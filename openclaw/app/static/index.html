@@ -33,9 +33,7 @@
     display: flex; align-items: center; gap: 16px;
     background: rgba(0,0,0,0.15);
   }
-  header h1 {
-    margin: 0; font-size: 18px; letter-spacing: 0.5px; font-weight: 600;
-  }
+  header h1 { margin: 0; font-size: 18px; letter-spacing: 0.5px; font-weight: 600; }
   header .tag {
     font-size: 10px; padding: 3px 8px; border-radius: 6px;
     background: var(--fire); color: #1a0a00; font-weight: 700; letter-spacing: 1px;
@@ -43,7 +41,7 @@
   header .who { margin-left: auto; color: var(--muted); font-size: 13px; }
   header .who b { color: var(--ink); }
 
-  main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px 28px; max-width: 1500px; margin: 0 auto; }
   @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
 
   .panel {
@@ -80,7 +78,7 @@
   .row label { color: var(--muted); font-size: 12px; }
   .row input[type="number"] {
     background: var(--panel2); color: var(--ink); border: 1px solid var(--border);
-    border-radius: 6px; padding: 5px 8px; width: 80px; font: 13px var(--mono);
+    border-radius: 6px; padding: 5px 8px; width: 90px; font: 13px var(--mono);
   }
 
   .verdict {
@@ -103,11 +101,35 @@
   pre.output {
     background: #0a1424; border: 1px solid var(--border); border-radius: 10px;
     padding: 14px; font: 13px/1.55 var(--mono); color: #d8e1ee;
-    white-space: pre-wrap; word-wrap: break-word;
-    max-height: 540px; overflow: auto;
+    white-space: pre-wrap; word-wrap: break-word; overflow: auto;
   }
   .meta { color: var(--muted); font-size: 12px; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 14px; }
   .meta b { color: var(--ink); }
+
+  .truncated-warn {
+    margin-top: 10px; padding: 10px 14px; background: rgba(250,204,21,0.12);
+    border: 1px solid var(--warn); color: var(--warn); border-radius: 8px; font-size: 13px;
+  }
+
+  .files { margin-top: 16px; }
+  .files h3 { margin: 0 0 8px 0; font-size: 11px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .file {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .file > .head {
+    padding: 9px 14px; cursor: pointer; display: flex; gap: 12px; align-items: center;
+    font: 13px var(--mono); user-select: none;
+  }
+  .file > .head:hover { background: rgba(255,122,31,0.05); }
+  .file > .head .fn { color: var(--ember); font-weight: 600; }
+  .file > .head .meta { margin: 0; }
+  .file > .body {
+    display: none; padding: 0 14px 12px 14px;
+  }
+  .file.open > .body { display: block; }
+  .file.open > .head .caret { transform: rotate(90deg); }
+  .caret { display: inline-block; transition: transform 0.15s; color: var(--muted); }
 
   .history { margin-top: 22px; }
   .history h3 { margin: 0 0 8px 0; font-size: 11px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
@@ -126,24 +148,23 @@
 <body>
 <header>
   <h1>OpenClaw</h1>
-  <span class="tag">v1 PR2</span>
+  <span class="tag">v1 PR3</span>
   <span class="who" id="who">authenticating...</span>
 </header>
 
 <main>
-  <!-- LEFT: Brief + dispatch -->
   <section class="panel">
     <h2>Junior dev brief</h2>
-    <div class="sub">Type a task. OpenClaw will classify it, pick a tool, and (if you ask) run it through the homelab LLMs.</div>
+    <div class="sub">Type a task. OpenClaw classifies it, picks a tool, runs it through the homelab LLM, and writes any code blocks to real files on CephFS.</div>
 
-    <textarea id="prompt" placeholder="e.g. Write a Python function that parses a YAML file and returns the keys as a sorted list. Include a docstring and a pytest test."></textarea>
+    <textarea id="prompt" placeholder="e.g. Write a Python function that parses a YAML file and returns the keys as a sorted list. Include a docstring and a pytest test. Name the files parser.py and test_parser.py."></textarea>
 
     <div class="actions">
       <button id="btn-classify">Classify only</button>
       <button id="btn-execute">Classify and run</button>
       <span class="row" style="margin-left:auto">
         <label for="max_tokens">max tokens</label>
-        <input type="number" id="max_tokens" value="1024" min="64" max="4096" step="64">
+        <input type="number" id="max_tokens" value="3072" min="128" max="8192" step="128">
       </span>
     </div>
 
@@ -151,12 +172,21 @@
     <div id="err" class="err-banner" style="display:none"></div>
   </section>
 
-  <!-- RIGHT: Run output + history -->
   <section class="panel">
     <h2>Output</h2>
     <div class="sub" id="run-status">No run yet. Click "Classify and run" to start.</div>
+
+    <div id="truncated-warn" class="truncated-warn" style="display:none">
+      The model hit max_tokens. Raise the cap on the left and re-run for the full answer.
+    </div>
+
     <pre id="output" class="output" style="display:none"></pre>
     <div id="meta" class="meta" style="display:none"></div>
+
+    <div id="files-section" class="files" style="display:none">
+      <h3>Files written</h3>
+      <div id="files-list"></div>
+    </div>
 
     <div class="history">
       <h3>Recent runs</h3>
@@ -168,7 +198,7 @@
   </section>
 </main>
 
-<footer>OpenClaw v1 :: dispatch -> classify -> execute :: homelab-only inference</footer>
+<footer>OpenClaw v1 :: classify -> execute -> write files :: homelab-only inference</footer>
 
 <script>
 const $ = (s) => document.querySelector(s);
@@ -180,17 +210,18 @@ const metaEl = $("#meta");
 const statusEl = $("#run-status");
 const histBody = $("#history-body");
 const whoEl = $("#who");
+const truncWarn = $("#truncated-warn");
+const filesSection = $("#files-section");
+const filesList = $("#files-list");
 
 let pollHandle = null;
 
-function showError(msg) {
-  errEl.textContent = msg;
-  errEl.style.display = "block";
-}
+function showError(msg) { errEl.textContent = msg; errEl.style.display = "block"; }
 function clearError() { errEl.style.display = "none"; }
-
-function statusPill(s) {
-  return `<span class="status-pill status-${s}">${s}</span>`;
+function escHtml(s) { return (s || "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function statusPill(s, truncated) {
+  const extra = truncated ? ' <span class="status-pill status-failed" style="margin-left:6px">truncated</span>' : '';
+  return `<span class="status-pill status-${s}">${s}</span>${extra}`;
 }
 
 async function api(path, opts) {
@@ -219,41 +250,57 @@ async function refreshHistory() {
     histBody.innerHTML = rows.map(r => `
       <tr class="clickable" data-id="${r.id}">
         <td>${r.id}</td>
-        <td>${statusPill(r.status)}</td>
+        <td>${statusPill(r.status, r.truncated)}</td>
         <td>${r.tool}</td>
         <td>${r.model || "-"}</td>
-        <td class="snip">${(r.prompt_snippet || "").replace(/</g,"&lt;")}</td>
+        <td class="snip">${escHtml(r.prompt_snippet)}</td>
         <td>${r.duration_ms ? r.duration_ms + " ms" : "-"}</td>
       </tr>`).join("");
     histBody.querySelectorAll("tr.clickable").forEach(tr => {
       tr.addEventListener("click", () => loadRun(parseInt(tr.dataset.id, 10)));
     });
   } catch (e) {
-    histBody.innerHTML = `<tr><td colspan="6" style="color:var(--err);text-align:center">${e.message}</td></tr>`;
+    histBody.innerHTML = `<tr><td colspan="6" style="color:var(--err);text-align:center">${escHtml(e.message)}</td></tr>`;
   }
+}
+
+function renderFiles(files) {
+  if (!files || !files.length) { filesSection.style.display = "none"; return; }
+  filesSection.style.display = "block";
+  filesList.innerHTML = files.map((f, i) => `
+    <div class="file" data-i="${i}">
+      <div class="head">
+        <span class="caret">&#9656;</span>
+        <span class="fn">${escHtml(f.filename)}</span>
+        <span style="color:var(--muted)">${f.language || "?"} :: ${f.size} bytes :: via ${f.source || "?"}</span>
+      </div>
+      <div class="body">
+        <pre class="output" style="margin:0">${escHtml(f.path || "")}</pre>
+      </div>
+    </div>`).join("");
+  filesList.querySelectorAll(".file").forEach(el => {
+    el.querySelector(".head").addEventListener("click", () => el.classList.toggle("open"));
+  });
 }
 
 async function loadRun(runId) {
   try {
     const r = await api(`/v1/runs/${runId}`);
-    statusEl.innerHTML = `run #${r.id} :: ${statusPill(r.status)} :: tool=${r.tool} model=${r.model || "-"}`;
-    if (r.output) {
-      outEl.textContent = r.output;
-      outEl.style.display = "block";
-    } else if (r.error) {
-      outEl.textContent = r.error;
-      outEl.style.display = "block";
-    } else {
-      outEl.textContent = "(waiting for output)";
-      outEl.style.display = "block";
-    }
+    statusEl.innerHTML = `run #${r.id} :: ${statusPill(r.status, r.truncated)} :: tool=${r.tool} model=${r.model || "-"}`;
+    truncWarn.style.display = r.truncated ? "block" : "none";
+    if (r.output) { outEl.textContent = r.output; outEl.style.display = "block"; }
+    else if (r.error) { outEl.textContent = r.error; outEl.style.display = "block"; }
+    else { outEl.textContent = "(waiting for output)"; outEl.style.display = "block"; }
     metaEl.style.display = "flex";
     metaEl.innerHTML = `
       <span>duration: <b>${r.duration_ms ? r.duration_ms + " ms" : "-"}</b></span>
       <span>tokens in: <b>${r.tokens_in ?? "-"}</b></span>
       <span>tokens out: <b>${r.tokens_out ?? "-"}</b></span>
+      <span>finish: <b>${r.finish_reason || "-"}</b></span>
+      <span>workspace: <b>${escHtml(r.workspace_path || "-")}</b></span>
       <span>started: <b>${r.started_at}</b></span>
     `;
+    renderFiles(r.files_written);
     return r;
   } catch (e) { showError(e.message); }
 }
@@ -279,16 +326,16 @@ async function doDispatch(execute) {
   try {
     const body = { prompt, execute, max_tokens: parseInt($("#max_tokens").value, 10) };
     const r = await api("/v1/dispatch", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(body),
+      method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body),
     });
-    verdictEl.innerHTML = `dispatch #${r.dispatch_id}: routed to <span class="tool">${r.suggested_tool}</span>\n<span class="reason">${r.reason}</span>`;
+    verdictEl.innerHTML = `dispatch #${r.dispatch_id}: routed to <span class="tool">${r.suggested_tool}</span>\n<span class="reason">${escHtml(r.reason)}</span>`;
     verdictEl.style.display = "block";
     if (execute && r.run_id) {
-      statusEl.innerHTML = `run #${r.run_id} :: ${statusPill("pending")} :: starting...`;
+      statusEl.innerHTML = `run #${r.run_id} :: ${statusPill("pending", false)} :: starting...`;
       outEl.style.display = "none";
       metaEl.style.display = "none";
+      filesSection.style.display = "none";
+      truncWarn.style.display = "none";
       pollRun(r.run_id);
     }
   } catch (e) { showError(e.message); }
@@ -297,9 +344,7 @@ async function doDispatch(execute) {
 $("#btn-classify").addEventListener("click", () => doDispatch(false));
 $("#btn-execute").addEventListener("click", () => doDispatch(true));
 promptEl.addEventListener("keydown", (e) => {
-  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-    doDispatch(true);
-  }
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") doDispatch(true);
 });
 
 loadWho();

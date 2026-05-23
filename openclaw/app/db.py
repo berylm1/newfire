@@ -1,4 +1,5 @@
 import asyncpg
+import json
 import logging
 from typing import Optional
 from .config import settings
@@ -81,15 +82,16 @@ async def create_run(
     owner_email: str,
     tool: str,
     prompt: str,
+    workspace_path: Optional[str] = None,
 ) -> int:
     async with pool().acquire() as conn:
         row = await conn.fetchrow(
             """
-            insert into openclaw.runs (dispatch_id, owner_email, tool, prompt, status)
-            values ($1, $2, $3, $4, 'pending')
+            insert into openclaw.runs (dispatch_id, owner_email, tool, prompt, status, workspace_path)
+            values ($1, $2, $3, $4, 'pending', $5)
             returning id
             """,
-            dispatch_id, owner_email, tool, prompt,
+            dispatch_id, owner_email, tool, prompt, workspace_path,
         )
         return row["id"]
 
@@ -108,6 +110,10 @@ async def complete_run(
     duration_ms: Optional[int] = None,
     tokens_in: Optional[int] = None,
     tokens_out: Optional[int] = None,
+    finish_reason: Optional[str] = None,
+    truncated: Optional[bool] = None,
+    files_written: Optional[list] = None,
+    workspace_path: Optional[str] = None,
 ) -> None:
     async with pool().acquire() as conn:
         await conn.execute(
@@ -120,10 +126,17 @@ async def complete_run(
                    duration_ms=$6,
                    tokens_in=$7,
                    tokens_out=$8,
+                   finish_reason=$9,
+                   truncated=coalesce($10, truncated),
+                   files_written=$11::jsonb,
+                   workspace_path=coalesce($12, workspace_path),
                    finished_at=now()
              where id=$1
             """,
             run_id, status, output, error, model, duration_ms, tokens_in, tokens_out,
+            finish_reason, truncated,
+            json.dumps(files_written) if files_written is not None else None,
+            workspace_path,
         )
 
 
@@ -133,20 +146,26 @@ async def get_run(run_id: int, owner_email: str) -> Optional[dict]:
             """
             select id, dispatch_id, owner_email, tool, model, prompt, status,
                    output, error, started_at, finished_at, duration_ms,
-                   tokens_in, tokens_out
+                   tokens_in, tokens_out, finish_reason, truncated,
+                   workspace_path, files_written
               from openclaw.runs
              where id=$1 and owner_email=$2
             """,
             run_id, owner_email,
         )
-        return dict(row) if row else None
+        if not row:
+            return None
+        d = dict(row)
+        if d.get("files_written") is not None:
+            d["files_written"] = json.loads(d["files_written"]) if isinstance(d["files_written"], str) else d["files_written"]
+        return d
 
 
 async def list_recent_runs(owner_email: str, limit: int = 25) -> list[dict]:
     async with pool().acquire() as conn:
         rows = await conn.fetch(
             """
-            select id, tool, model, status,
+            select id, tool, model, status, truncated,
                    substring(prompt, 1, 120) as prompt_snippet,
                    started_at, finished_at, duration_ms
               from openclaw.runs

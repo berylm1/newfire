@@ -9,6 +9,10 @@ services:
     ports:
       # Loopback-only on host; cloudflared bridges to edge.
       - "127.0.0.1:5500:5500"
+    volumes:
+      # CephFS-backed workspaces written by the executor.
+      # Host path is created with uid 1000 ownership at deploy time.
+      - /mnt/cephfs-mgmt/openclaw-workspaces:/workspaces:rw
     env_file:
       - .env-secrets
     environment:
