@@ -28,12 +28,22 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if not settings.openclaw_dev_email and not settings.cf_access_aud:
-        log.error("REFUSING TO START: neither OPENCLAW_DEV_EMAIL nor CF_ACCESS_AUD is set.")
+    # Production posture needs at least a team domain (for JWKS lookup).
+    # AUD pinning is recommended but optional; without it, any CF-team-signed
+    # JWT is accepted (the CF Access policy itself remains the real gate).
+    if not settings.openclaw_dev_email and not settings.cf_team_domain:
+        log.error("REFUSING TO START: neither OPENCLAW_DEV_EMAIL nor CF_TEAM_DOMAIN is set.")
         sys.exit(2)
     if settings.openclaw_dev_email:
         log.warning("DEV MODE: JWT bypass active, all requests authenticate as %s",
                     settings.openclaw_dev_email)
+    elif not settings.cf_access_aud:
+        log.warning("CF_ACCESS_AUD empty: accepting any JWT signed by %s. "
+                    "Set CF_ACCESS_AUD to pin to a specific application.",
+                    settings.cf_team_domain)
+    else:
+        log.info("PROD MODE: JWT verified against %s, audience pinned.",
+                 settings.cf_team_domain)
     await init_pool()
     log.info("OpenClaw v1 ready on port %d", settings.service_port)
     yield
