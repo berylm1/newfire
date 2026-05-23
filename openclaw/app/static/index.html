@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenClaw v1 :: junior dev console</title>
+<style>
+  :root {
+    --bg: #0b1a2f;
+    --panel: #142640;
+    --panel2: #1b2f4d;
+    --ink: #e8edf6;
+    --muted: #8fa3c2;
+    --fire: #ff7a1f;
+    --ember: #ffb070;
+    --ok: #4ade80;
+    --warn: #facc15;
+    --err: #f87171;
+    --border: #25406b;
+    --mono: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(160deg, #0b1a2f 0%, #122340 100%);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(0,0,0,0.15);
+  }
+  header h1 {
+    margin: 0; font-size: 18px; letter-spacing: 0.5px; font-weight: 600;
+  }
+  header .tag {
+    font-size: 10px; padding: 3px 8px; border-radius: 6px;
+    background: var(--fire); color: #1a0a00; font-weight: 700; letter-spacing: 1px;
+  }
+  header .who { margin-left: auto; color: var(--muted); font-size: 13px; }
+  header .who b { color: var(--ink); }
+
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px 28px; max-width: 1400px; margin: 0 auto; }
+  @media (max-width: 980px) { main { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+  }
+  .panel h2 {
+    margin: 0 0 4px 0; font-size: 13px; letter-spacing: 1.5px; color: var(--ember); text-transform: uppercase;
+  }
+  .panel .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+
+  textarea {
+    width: 100%; min-height: 180px; resize: vertical;
+    background: var(--panel2); color: var(--ink);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; font: 14px/1.55 var(--mono);
+  }
+  textarea:focus { outline: none; border-color: var(--fire); }
+
+  .actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button {
+    background: var(--fire); color: #1a0a00; border: 0;
+    padding: 9px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;
+    font-size: 13px; letter-spacing: 0.3px;
+  }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button:hover:not(:disabled) { filter: brightness(1.07); }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row label { color: var(--muted); font-size: 12px; }
+  .row input[type="number"] {
+    background: var(--panel2); color: var(--ink); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 8px; width: 80px; font: 13px var(--mono);
+  }
+
+  .verdict {
+    margin-top: 14px; padding: 12px 14px; border-left: 3px solid var(--fire);
+    background: rgba(255,122,31,0.06); border-radius: 6px;
+    font: 13px/1.6 var(--mono); white-space: pre-wrap;
+  }
+  .verdict .tool { color: var(--ember); font-weight: 700; }
+  .verdict .reason { color: var(--muted); }
+
+  .status-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .status-pending  { background: rgba(250,204,21,0.18); color: var(--warn); }
+  .status-running  { background: rgba(255,122,31,0.18); color: var(--fire); }
+  .status-succeeded{ background: rgba(74,222,128,0.18); color: var(--ok); }
+  .status-failed, .status-timeout { background: rgba(248,113,113,0.18); color: var(--err); }
+
+  pre.output {
+    background: #0a1424; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; font: 13px/1.55 var(--mono); color: #d8e1ee;
+    white-space: pre-wrap; word-wrap: break-word;
+    max-height: 540px; overflow: auto;
+  }
+  .meta { color: var(--muted); font-size: 12px; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 14px; }
+  .meta b { color: var(--ink); }
+
+  .history { margin-top: 22px; }
+  .history h3 { margin: 0 0 8px 0; font-size: 11px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .history table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .history th, .history td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .history th { color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .history td.snip { color: var(--muted); max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history tr.clickable { cursor: pointer; }
+  .history tr.clickable:hover { background: rgba(255,122,31,0.06); }
+
+  .err-banner { background: rgba(248,113,113,0.12); border: 1px solid var(--err); color: var(--err);
+                padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 10px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; opacity: 0.7; }
+</style>
+</head>
+<body>
+<header>
+  <h1>OpenClaw</h1>
+  <span class="tag">v1 PR2</span>
+  <span class="who" id="who">authenticating...</span>
+</header>
+
+<main>
+  <!-- LEFT: Brief + dispatch -->
+  <section class="panel">
+    <h2>Junior dev brief</h2>
+    <div class="sub">Type a task. OpenClaw will classify it, pick a tool, and (if you ask) run it through the homelab LLMs.</div>
+
+    <textarea id="prompt" placeholder="e.g. Write a Python function that parses a YAML file and returns the keys as a sorted list. Include a docstring and a pytest test."></textarea>
+
+    <div class="actions">
+      <button id="btn-classify">Classify only</button>
+      <button id="btn-execute">Classify and run</button>
+      <span class="row" style="margin-left:auto">
+        <label for="max_tokens">max tokens</label>
+        <input type="number" id="max_tokens" value="1024" min="64" max="4096" step="64">
+      </span>
+    </div>
+
+    <div id="verdict" class="verdict" style="display:none"></div>
+    <div id="err" class="err-banner" style="display:none"></div>
+  </section>
+
+  <!-- RIGHT: Run output + history -->
+  <section class="panel">
+    <h2>Output</h2>
+    <div class="sub" id="run-status">No run yet. Click "Classify and run" to start.</div>
+    <pre id="output" class="output" style="display:none"></pre>
+    <div id="meta" class="meta" style="display:none"></div>
+
+    <div class="history">
+      <h3>Recent runs</h3>
+      <table id="history-table">
+        <thead><tr><th>id</th><th>status</th><th>tool</th><th>model</th><th>prompt</th><th>duration</th></tr></thead>
+        <tbody id="history-body"><tr><td colspan="6" style="color:var(--muted);text-align:center">loading...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>OpenClaw v1 :: dispatch -> classify -> execute :: homelab-only inference</footer>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const promptEl = $("#prompt");
+const verdictEl = $("#verdict");
+const errEl = $("#err");
+const outEl = $("#output");
+const metaEl = $("#meta");
+const statusEl = $("#run-status");
+const histBody = $("#history-body");
+const whoEl = $("#who");
+
+let pollHandle = null;
+
+function showError(msg) {
+  errEl.textContent = msg;
+  errEl.style.display = "block";
+}
+function clearError() { errEl.style.display = "none"; }
+
+function statusPill(s) {
+  return `<span class="status-pill status-${s}">${s}</span>`;
+}
+
+async function api(path, opts) {
+  const res = await fetch(path, { credentials: "include", ...opts });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HTTP ${res.status}: ${text}`);
+  }
+  return res.json();
+}
+
+async function loadWho() {
+  try {
+    const w = await api("/v1/whoami");
+    whoEl.innerHTML = `signed in as <b>${w.email}</b>`;
+  } catch (e) { whoEl.textContent = "not signed in"; }
+}
+
+async function refreshHistory() {
+  try {
+    const rows = await api("/v1/runs");
+    if (!rows.length) {
+      histBody.innerHTML = `<tr><td colspan="6" style="color:var(--muted);text-align:center">no runs yet</td></tr>`;
+      return;
+    }
+    histBody.innerHTML = rows.map(r => `
+      <tr class="clickable" data-id="${r.id}">
+        <td>${r.id}</td>
+        <td>${statusPill(r.status)}</td>
+        <td>${r.tool}</td>
+        <td>${r.model || "-"}</td>
+        <td class="snip">${(r.prompt_snippet || "").replace(/</g,"&lt;")}</td>
+        <td>${r.duration_ms ? r.duration_ms + " ms" : "-"}</td>
+      </tr>`).join("");
+    histBody.querySelectorAll("tr.clickable").forEach(tr => {
+      tr.addEventListener("click", () => loadRun(parseInt(tr.dataset.id, 10)));
+    });
+  } catch (e) {
+    histBody.innerHTML = `<tr><td colspan="6" style="color:var(--err);text-align:center">${e.message}</td></tr>`;
+  }
+}
+
+async function loadRun(runId) {
+  try {
+    const r = await api(`/v1/runs/${runId}`);
+    statusEl.innerHTML = `run #${r.id} :: ${statusPill(r.status)} :: tool=${r.tool} model=${r.model || "-"}`;
+    if (r.output) {
+      outEl.textContent = r.output;
+      outEl.style.display = "block";
+    } else if (r.error) {
+      outEl.textContent = r.error;
+      outEl.style.display = "block";
+    } else {
+      outEl.textContent = "(waiting for output)";
+      outEl.style.display = "block";
+    }
+    metaEl.style.display = "flex";
+    metaEl.innerHTML = `
+      <span>duration: <b>${r.duration_ms ? r.duration_ms + " ms" : "-"}</b></span>
+      <span>tokens in: <b>${r.tokens_in ?? "-"}</b></span>
+      <span>tokens out: <b>${r.tokens_out ?? "-"}</b></span>
+      <span>started: <b>${r.started_at}</b></span>
+    `;
+    return r;
+  } catch (e) { showError(e.message); }
+}
+
+function pollRun(runId) {
+  if (pollHandle) clearInterval(pollHandle);
+  pollHandle = setInterval(async () => {
+    const r = await loadRun(runId);
+    if (!r) return;
+    if (["succeeded", "failed", "timeout"].includes(r.status)) {
+      clearInterval(pollHandle);
+      pollHandle = null;
+      refreshHistory();
+    }
+  }, 1200);
+}
+
+async function doDispatch(execute) {
+  clearError();
+  verdictEl.style.display = "none";
+  const prompt = promptEl.value.trim();
+  if (!prompt) { showError("type a brief first"); return; }
+  try {
+    const body = { prompt, execute, max_tokens: parseInt($("#max_tokens").value, 10) };
+    const r = await api("/v1/dispatch", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+    verdictEl.innerHTML = `dispatch #${r.dispatch_id}: routed to <span class="tool">${r.suggested_tool}</span>\n<span class="reason">${r.reason}</span>`;
+    verdictEl.style.display = "block";
+    if (execute && r.run_id) {
+      statusEl.innerHTML = `run #${r.run_id} :: ${statusPill("pending")} :: starting...`;
+      outEl.style.display = "none";
+      metaEl.style.display = "none";
+      pollRun(r.run_id);
+    }
+  } catch (e) { showError(e.message); }
+}
+
+$("#btn-classify").addEventListener("click", () => doDispatch(false));
+$("#btn-execute").addEventListener("click", () => doDispatch(true));
+promptEl.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    doDispatch(true);
+  }
+});
+
+loadWho();
+refreshHistory();
+setInterval(refreshHistory, 8000);
+</script>
+</body>
+</html>

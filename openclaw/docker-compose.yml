@@ -1,0 +1,33 @@
+services:
+  openclaw:
+    image: newfire/openclaw:1.0.0-pr1
+    build: .
+    container_name: openclaw
+    restart: unless-stopped
+    networks:
+      - newfire_shared
+    ports:
+      # Loopback-only on host; cloudflared bridges to edge.
+      - "127.0.0.1:5500:5500"
+    env_file:
+      - .env-secrets
+    environment:
+      DB_HOST: newfire-db
+      DB_PORT: "5432"
+      DB_NAME: newfire
+      DB_USER: newfire
+      DB_SCHEMA: openclaw
+      CF_TEAM_DOMAIN: newwaveclaw.cloudflareaccess.com
+      OPENCODE_URL: https://opencode.newfire.app
+      OPENHANDS_URL: https://openhands.newfire.app
+      LITELLM_URL: http://100.88.112.5:4500
+      LOG_LEVEL: info
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  newfire_shared:
+    external: true

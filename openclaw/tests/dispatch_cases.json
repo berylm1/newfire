@@ -1,0 +1,30 @@
+{
+  "_comment": "5 hand-crafted prompts per spec section 9 phase 1 acceptance.",
+  "cases": [
+    {
+      "prompt": "Build me a Discord bot that posts daily standups, autonomously.",
+      "expect_tool": "openhands",
+      "expect_stage": "A"
+    },
+    {
+      "prompt": "Edit this file and rename the function.",
+      "expect_tool": "opencode",
+      "expect_stage": "A"
+    },
+    {
+      "prompt": "Add Stripe checkout to the marketing site and run the migration.",
+      "expect_tool": "openhands",
+      "expect_stage": "B"
+    },
+    {
+      "prompt": "What does the orchestrator.classifyAgentModel function do?",
+      "expect_tool": "opencode",
+      "expect_stage": "B"
+    },
+    {
+      "prompt": "Refactor this module then update the tests after that.",
+      "expect_tool": "openhands",
+      "expect_stage": "B"
+    }
+  ]
+}
