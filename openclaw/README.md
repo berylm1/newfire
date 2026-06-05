@@ -8,7 +8,7 @@ Public URL: `https://claw.newfire.app` (gated by Cloudflare Access).
 
 | PR | What it does |
 |---|---|
-| PR 1 | FastAPI skeleton, CF Access JWT, Postgres `openclaw` schema, Stage A keyword + Stage B classifier stub, `/v1/whoami`, `/v1/dispatch` (suggest mode). |
+| PR 1 | FastAPI skeleton, CF Access JWT, Postgres `openclaw` schema, Stage A keyword + Stage B LiteLLM classifier with deterministic fallback, `/v1/whoami`, `/v1/dispatch` (suggest mode). |
 | PR 2 | Adds `execute=true` on dispatch, background task, `runs` table, `/v1/runs[/{id}]`, single-page UI at `/`. Inference via the llama.cpp router on ghana. |
 | PR 3 | Captures `finish_reason` (warns when truncated). Materializes a per-run workspace on CephFS at `/mnt/cephfs-mgmt/openclaw-workspaces/run-{id}/`. Parses fenced code blocks from the LLM output and writes them as real files with filename inference (markdown header, first-line comment, or fallback). README.md added in each workspace with the prompt and prose. |
 
@@ -44,7 +44,7 @@ Public URL: `https://claw.newfire.app` (gated by Cloudflare Access).
 
 ## How execute mode works (PR 3)
 
-1. Brief classified by Stage A keyword and Stage B stub.
+1. Brief classified by Stage A keyword and Stage B LiteLLM/rules fallback.
 2. `runs` row created with status `pending` and workspace path `/workspaces/run-{id}`.
 3. Background task picks the model: openhands -> qwen3-coder-30b, opencode -> qwen-coder-7b, direct -> gemma3-4b.
 4. LLM is called via the homelab llama router; response captured along with `finish_reason` (so truncation surfaces).
