@@ -19,7 +19,7 @@ Where every piece of the NewFire platform lives on disk and where the deployed c
 ## NewFire backend (the load-bearing one)
 
 - **Stack**: Express + Postgres, JWT auth, smart routing via OpenClaw, per-tenant Qdrant collections, HMAC webhooks, Stripe billing.
-- **Source**: `/Users/oluwajobamalomo/newfire-backend/`
+- **Source**: `newfire-backend/` in this GitHub repo; production worker mirror is `/home/newwaveclaw/newfire-backend/` on america. The baseline was imported from local commit `16b1571 chore: baseline NewFire backend source`.
 - **Key files**:
   - `src/server.js` Express entry, route registration, startup log
   - `src/auth.js` JWT login, signup, refresh, middleware
@@ -70,7 +70,8 @@ Where every piece of the NewFire platform lives on disk and where the deployed c
 
 ## Git status caveats
 
-- `newfire-backend` and `newfire-app` were `git init` initialized on 2026-04-21 but had no remote configured at that time. Verify with `git remote -v` in each dir; if still no remote, plan a push to `berylm1` or a sibling repo before they grow further.
+- `newfire-backend` is now staged for GitHub PR control under `newfire-backend/` in this repo. Do not edit the production worker mirror directly for governed implementation work; create a branch/PR here first, then deploy separately after review.
+- `newfire-app` was `git init` initialized on 2026-04-21 but had no remote configured at that time. Verify with `git remote -v` in that dir; if still no remote, plan a push to `berylm1` or a sibling repo before it grows further.
 - `newfire-nss-control`, `newfire-nss-runner`, `newfire-nss-portal`, `newfire-mcp`, and `newfire-sdk` each have their own local git repos. Remote status is unknown without checking each.
 - `newfire-infra` (this repo) is the only one confirmed to have a working remote and push history.
 

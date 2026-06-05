@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# NewFire OpenHands CLI. Sends a coding/review/test/deploy task to the
+# DGX-Spark-powered OpenHands instance via the NewFire developer API.
+#
+# Setup (one time):
+#   mkdir -p ~/.newfire
+#   echo 'YOUR_JWT_TOKEN' > ~/.newfire/token
+#   chmod 600 ~/.newfire/token
+#
+# Usage:
+#   openhands-cli "Review the auth middleware for race conditions"
+#   openhands-cli --repo https://github.com/me/myproj --branch main "Add a /health endpoint"
+#   echo "Refactor x.js for readability" | openhands-cli
+#
+# Env overrides:
+#   NEWFIRE_API   default https://newfire.app/backend
+#   NEWFIRE_TOKEN default $(cat ~/.newfire/token)
+
+set -euo pipefail
+
+API="${NEWFIRE_API:-https://newfire.app/backend}"
+TOKEN_FILE="${HOME}/.newfire/token"
+TOKEN="${NEWFIRE_TOKEN:-}"
+REPO=""
+BRANCH=""
+GIT_TOKEN=""
+INSTRUCTION=""
+
+usage() {
+  sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
+  exit "${1:-0}"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --repo)        REPO="$2"; shift 2 ;;
+    --branch)      BRANCH="$2"; shift 2 ;;
+    --git-token)   GIT_TOKEN="$2"; shift 2 ;;
+    -h|--help)     usage 0 ;;
+    --)            shift; INSTRUCTION="$*"; break ;;
+    *)             INSTRUCTION="$*"; break ;;
+  esac
+done
+
+if [[ -z "$INSTRUCTION" ]]; then
+  if [[ ! -t 0 ]]; then
+    INSTRUCTION="$(cat)"
+  else
+    echo "error: no instruction provided" >&2
+    usage 2
+  fi
+fi
+
+if [[ -z "$TOKEN" ]]; then
+  if [[ -f "$TOKEN_FILE" ]]; then
+    TOKEN="$(tr -d '\r\n' < "$TOKEN_FILE")"
+  fi
+fi
+if [[ -z "$TOKEN" ]]; then
+  echo "error: no JWT. Put it in $TOKEN_FILE or set NEWFIRE_TOKEN." >&2
+  exit 3
+fi
+
+# Build JSON body without requiring jq.
+escape_json() {
+  python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
+}
+INSTR_JSON=$(printf '%s' "$INSTRUCTION" | escape_json)
+REPO_JSON="null"; [[ -n "$REPO" ]] && REPO_JSON=$(printf '%s' "$REPO" | escape_json)
+BRANCH_JSON="null"; [[ -n "$BRANCH" ]] && BRANCH_JSON=$(printf '%s' "$BRANCH" | escape_json)
+TOKEN_JSON="null"; [[ -n "$GIT_TOKEN" ]] && TOKEN_JSON=$(printf '%s' "$GIT_TOKEN" | escape_json)
+
+BODY="{\"instruction\":${INSTR_JSON},\"repo\":${REPO_JSON},\"branch\":${BRANCH_JSON},\"git_token\":${TOKEN_JSON}}"
+
+echo "[openhands-cli] sending task to ${API}/dev/openhands ..." >&2
+RESP=$(curl -sS --max-time 30 -X POST "${API}/dev/openhands" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "$BODY")
+
+SESSION=$(echo "$RESP" | python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); print(d.get("session_id","")); sys.exit(0 if "session_id" in d else 1)' 2>/dev/null) || {
+  echo "ERROR: $RESP" >&2; exit 1
+}
+
+echo "[openhands-cli] session=${SESSION} polling..." >&2
+
+while true; do
+  sleep 5
+  STATE=$(curl -sS --max-time 15 "${API}/dev/openhands/sessions/${SESSION}" \
+    -H "Authorization: Bearer $TOKEN")
+  STATUS=$(echo "$STATE" | python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("session",{}).get("status",""))' 2>/dev/null)
+  case "$STATUS" in
+    completed|failed|timed_out)
+      echo "$STATE" | python3 -c '
+import json,sys
+s = json.loads(sys.stdin.read()).get("session", {})
+sid = s.get("id"); st = s.get("status"); d = s.get("duration_ms", 0)
+print("--- session #%s  status=%s  duration=%sms ---" % (sid, st, d))
+print(s.get("response") or s.get("error") or "(no result)")
+'
+      [[ "$STATUS" == "completed" ]] && exit 0 || exit 1
+      ;;
+    in_progress|"")
+      echo "[openhands-cli] still working (status=${STATUS:-?})..." >&2
+      ;;
+    *)
+      echo "[openhands-cli] unexpected status=${STATUS}" >&2
+      echo "$STATE"; exit 2
+      ;;
+  esac
+done
