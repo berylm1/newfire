@@ -1,0 +1,72 @@
+{
+  "name": "NewFire: Welcome new signup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "newfire-user-signup",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-signup",
+      "name": "Webhook: user.signup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "newfire-user-signup"
+    },
+    {
+      "parameters": {
+        "jsCode": "const crypto = require('crypto');\nconst secret = $env.N8N_HOOK_SECRET || '';\nconst raw = $input.first().binary?.data?.data ? Buffer.from($input.first().binary.data.data, 'base64').toString('utf8') : JSON.stringify($input.first().json);\nconst header = $input.first().headers?.['x-signature'] || '';\nconst cleaned = String(header).replace(/^sha256=/, '').trim();\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nconst valid = secret && cleaned && cleaned.length === expected.length && crypto.timingSafeEqual(Buffer.from(cleaned,'hex'), Buffer.from(expected,'hex'));\nif (!valid) { throw new Error('Invalid signature - rejecting webhook'); }\nreturn [{ json: JSON.parse(raw) }];"
+      },
+      "id": "verify-sig",
+      "name": "Verify HMAC signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "user.signup",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "if-signup",
+      "name": "Is user.signup?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "welcome@newfire.app",
+        "toEmail": "={{ $json.payload.email }}",
+        "subject": "Welcome to NewFire, {{ $json.payload.name }}",
+        "emailType": "html",
+        "htmlBody": "<p>Hi {{ $json.payload.name }},</p><p>Welcome to NewFire. Your workspace is ready.</p><p>Jump in: <a href=\"https://newfire.app/onboarding\">https://newfire.app/onboarding</a></p><p>The NewFire Team</p>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send welcome email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [920, 240]
+    }
+  ],
+  "connections": {
+    "Webhook: user.signup": { "main": [[{ "node": "Verify HMAC signature", "type": "main", "index": 0 }]] },
+    "Verify HMAC signature": { "main": [[{ "node": "Is user.signup?", "type": "main", "index": 0 }]] },
+    "Is user.signup?": { "main": [[{ "node": "Send welcome email", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["newfire", "lifecycle"]
+}

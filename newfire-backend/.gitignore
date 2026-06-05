@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_ed25519
+*.p12
+*.pfx
+
+# Runtime output
+logs/
+*.log
+.tmp/
+tmp/
+coverage/
+dist/
+build/
+.cache/
+
+# Databases and dumps
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.sql.zst
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
