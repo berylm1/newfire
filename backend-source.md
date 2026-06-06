@@ -70,10 +70,18 @@ Where every piece of the NewFire platform lives on disk and where the deployed c
 
 ## Git status caveats
 
-- `newfire-backend` is now staged for GitHub PR control under `newfire-backend/` in this repo. Do not edit the production worker mirror directly for governed implementation work; create a branch/PR here first, then deploy separately after review.
-- `newfire-app` was `git init` initialized on 2026-04-21 but had no remote configured at that time. Verify with `git remote -v` in that dir; if still no remote, plan a push to `berylm1` or a sibling repo before it grows further.
-- `newfire-nss-control`, `newfire-nss-runner`, `newfire-nss-portal`, `newfire-mcp`, and `newfire-sdk` each have their own local git repos. Remote status is unknown without checking each.
-- `newfire-infra` (this repo) is the only one confirmed to have a working remote and push history.
+Machine-readable governance status now lives in `docs/ceo-agent/source-control-manifest.json`. Run `scripts/check_source_control_manifest.py --report-only` for a non-failing CEO report or `scripts/check_source_control_manifest.py` as a strict implementation preflight.
+
+Current governed surfaces:
+
+- `newfire-backend` is under GitHub PR control at `newfire-backend/` in this repo. Do not edit the production worker mirror directly for governed implementation work; create a branch/PR here first, then deploy separately after review.
+- `openclaw/`, `newfire_backend_docker/`, and `infra/` are tracked in this repo for CEO audit purposes.
+
+Current source-control blockers:
+
+- `newfire-app` was `git init` initialized on 2026-04-21 but had no remote configured at that time. It is marked `blocked_untracked` until a GitHub remote or approved vendored baseline is verified.
+- `newfire-nss-control`, `newfire-nss-runner`, `newfire-nss-portal`, and `newfire-nss-router` are production/load-bearing surfaces with unknown GitHub governance. They are marked `blocked_untracked` until verified/imported.
+- `newfire-mcp` and `newfire-sdk` are marked `deferred_scaffold`; do not count them as production-ready until they are promoted and source-controlled.
 
 ## Where to add a new project
 
