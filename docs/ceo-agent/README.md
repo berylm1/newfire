@@ -102,6 +102,18 @@ Initial production-readiness snapshot:
 
 See: `docs/ceo-agent/performance-and-readiness-scorecard.md`
 
+## Task 6 — Product gap / missing feature / orphan audit
+
+The first issue #11 audit is now captured in:
+
+- `docs/ceo-agent/product-gap-orphan-audit.md`
+
+It identifies three immediate implementation issues:
+
+1. #27 — full platform source-control manifest and audit gate.
+2. #28 — productize onboarding interview to provisioned company flow.
+3. #29 — backend agent task reconciliation worker and SLA lifecycle.
+
 ## Governance status
 
 Source-control preflight is now explicit for governed agent work:
