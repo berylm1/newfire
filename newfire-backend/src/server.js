@@ -1,5 +1,4 @@
 import express from 'express'
-import cors from 'cors'
 import { initDatabase, query } from './db.js'
 import { signup, login, authenticate, getUser, setOnboarded } from './auth.js'
 import { tenantContext, invalidateTenant } from './tenant.js'
@@ -18,11 +17,12 @@ import { runOpenHandsTask, listSessions as listDevSessions, getSession as getDev
 import { TIERS, getTier, listTiers } from './tiers.js'
 import { initWebhooksTable, registerWebhookRoutes, emitExternalEvent } from './webhooks.js'
 import { httpMetricsMiddleware, metricsHandler } from './metrics.js'
+import { applySecurityMiddleware, authRateLimiter } from './security.js'
 
 const app = express()
 const PORT = process.env.PORT || 3200
 
-app.use(cors())
+applySecurityMiddleware(app)
 // Stripe webhook MUST receive the raw body for signature verification.
 // This mount runs BEFORE express.json() so req.body arrives as a Buffer on this path only.
 app.use('/webhooks/stripe', express.raw({ type: 'application/json' }))
@@ -39,7 +39,7 @@ app.get('/health', (req, res) => {
 app.get('/metrics', metricsHandler)
 
 // Auth routes
-app.post('/auth/signup', async (req, res) => {
+app.post('/auth/signup', authRateLimiter, async (req, res) => {
   try {
     const { email, password, name } = req.body
     if (!email || !password || !name) {
@@ -57,7 +57,7 @@ app.post('/auth/signup', async (req, res) => {
   }
 })
 
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body
     if (!email || !password) {
