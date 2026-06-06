@@ -104,6 +104,12 @@ See: `docs/ceo-agent/performance-and-readiness-scorecard.md`
 
 ## Governance status
 
+Source-control preflight is now explicit for governed agent work:
+
+- `docs/ceo-agent/source-control-manifest.json` lists the GitHub governance status for every known NewFire service.
+- `scripts/check_source_control_manifest.py` fails strict preflight when a production/load-bearing service lacks a GitHub repo or approved vendored baseline.
+- Current strict blockers are frontend plus NSS control/runner/portal/router; scaffolds MCP and SDK are deferred and excluded from production-ready scoring until promoted.
+
 No destructive actions were performed:
 
 - No production load testing.
