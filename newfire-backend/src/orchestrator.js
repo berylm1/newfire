@@ -501,26 +501,30 @@ export async function getUserCompany(userId) {
   return result.rows[0] || null
 }
 
+export async function getTenantAgent(companyId, agentId) {
+  const result = await query(
+    `SELECT a.*, c.qdrant_collection FROM agents a
+     JOIN companies c ON a.company_id = c.id
+     WHERE a.company_id = $1 AND a.agent_id = $2`,
+    [companyId, agentId]
+  )
+  return result.rows[0] || null
+}
+
 export async function chatWithAgent(userId, agentId, messages, opts = {}) {
   // Prefer the explicit companyId from tenantContext when present so the
   // lookup is unambiguous if a user somehow ended up with more than one
   // company. Fall back to the user_id join for legacy callers.
-  const agentResult = opts.companyId != null
-    ? await query(
-        `SELECT a.*, c.qdrant_collection FROM agents a
-         JOIN companies c ON a.company_id = c.id
-         WHERE a.company_id = $1 AND a.agent_id = $2`,
-        [opts.companyId, agentId]
-      )
-    : await query(
+  const agent = opts.companyId != null
+    ? await getTenantAgent(opts.companyId, agentId)
+    : (await query(
         `SELECT a.*, c.qdrant_collection FROM agents a
          JOIN companies c ON a.company_id = c.id
          WHERE c.user_id = $1 AND a.agent_id = $2
          ORDER BY c.created_at DESC LIMIT 1`,
         [userId, agentId]
-      )
+      )).rows[0]
 
-  const agent = agentResult.rows[0]
   if (!agent) {
     throw new Error('Agent not found')
   }

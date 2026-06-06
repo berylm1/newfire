@@ -14,7 +14,18 @@ const pool = new pg.Pool({
   max: 20,
 })
 
+let queryImplementation = null
+
+export function setQueryImplementation(fn) {
+  queryImplementation = fn
+}
+
+export function resetQueryImplementation() {
+  queryImplementation = null
+}
+
 export async function query(text, params) {
+  if (queryImplementation) return queryImplementation(text, params)
   const res = await pool.query(text, params)
   return res
 }
