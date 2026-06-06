@@ -112,6 +112,7 @@ export async function initWebhooksTable() {
       source VARCHAR(64) NOT NULL,
       event_type VARCHAR(128),
       payload JSONB NOT NULL,
+      event_id VARCHAR(128),
       signature VARCHAR(256),
       verified BOOLEAN DEFAULT FALSE,
       processed BOOLEAN DEFAULT FALSE,
@@ -120,8 +121,10 @@ export async function initWebhooksTable() {
       received_at TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+  await query('ALTER TABLE webhooks_inbox ADD COLUMN IF NOT EXISTS event_id VARCHAR(128)')
   await query('CREATE INDEX IF NOT EXISTS idx_webhooks_source ON webhooks_inbox(source, received_at DESC)')
   await query('CREATE INDEX IF NOT EXISTS idx_webhooks_unprocessed ON webhooks_inbox(processed, received_at) WHERE processed = FALSE')
+  await query('CREATE UNIQUE INDEX IF NOT EXISTS idx_webhooks_source_event_id ON webhooks_inbox(source, event_id) WHERE event_id IS NOT NULL')
   console.log('[webhooks] webhooks_inbox table ready')
 }
 
@@ -162,6 +165,61 @@ function broadcast(event) {
   }
 }
 
+function parseWebhookPayload(rawBody) {
+  if (!rawBody?.length) return {}
+  return JSON.parse(rawBody.toString('utf8'))
+}
+
+function eventIdFrom(parsed, explicitEventId) {
+  return explicitEventId || parsed?.id || parsed?.event_id || null
+}
+
+export async function handleInboundWebhook({ source, rawBody, signature, secret, eventTypeHeader, eventIdHeader }, deps = {}) {
+  const runQuery = deps.query || query
+  const safeSource = String(source || '').slice(0, 64)
+  if (!/^[a-z0-9_-]+$/i.test(safeSource)) {
+    return { status: 400, body: { error: 'invalid source' } }
+  }
+
+  const bodyBuffer = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody || '')
+  const verified = verifySignature(bodyBuffer, signature, secret)
+  let parsed = {}
+  try {
+    parsed = parseWebhookPayload(bodyBuffer)
+  } catch {
+    if (verified) return { status: 400, body: { error: 'malformed payload' } }
+    parsed = { _malformed: true }
+  }
+
+  const eventType = eventTypeHeader || parsed?.event || null
+  const eventId = eventIdFrom(parsed, eventIdHeader)
+
+  if (!verified) {
+    await runQuery(
+      `INSERT INTO webhooks_inbox (source, event_type, event_id, payload, signature, verified)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (source, event_id) WHERE event_id IS NOT NULL DO NOTHING
+       RETURNING id, received_at`,
+      [safeSource, eventType, eventId, parsed, signature || null, false]
+    )
+    return { status: 401, body: { error: 'invalid signature' } }
+  }
+
+  const { rows } = await runQuery(
+    `INSERT INTO webhooks_inbox (source, event_type, event_id, payload, signature, verified)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (source, event_id) WHERE event_id IS NOT NULL DO UPDATE SET event_id = EXCLUDED.event_id
+     RETURNING id, received_at, (xmax <> 0) AS duplicate`,
+    [safeSource, eventType, eventId, parsed, signature, true]
+  )
+  const stored = rows[0]
+  return {
+    status: 200,
+    body: { ok: true, id: stored.id, duplicate: Boolean(stored.duplicate) },
+    broadcastEvent: Boolean(stored.duplicate) ? null : { id: stored.id, source: safeSource, event_type: eventType, event_id: eventId, received_at: stored.received_at },
+  }
+}
+
 export function registerWebhookRoutes(app, { authenticate } = {}) {
   const secret = process.env.WEBHOOK_SECRET || ''
   if (!secret) {
@@ -183,28 +241,16 @@ export function registerWebhookRoutes(app, { authenticate } = {}) {
 
       const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from('')
       const sigHeader = req.get('X-Signature') || req.get('X-Hub-Signature-256') || ''
-      const verified = verifySignature(rawBody, sigHeader, secret)
-
-      let parsed = {}
-      try { parsed = rawBody.length ? JSON.parse(rawBody.toString('utf8')) : {} } catch { parsed = { _raw: rawBody.toString('utf8').slice(0, 4096) } }
-
-      const eventType = req.get('X-Event-Type') || parsed?.event || null
-
-      if (!verified) {
-        await query(
-          'INSERT INTO webhooks_inbox (source, event_type, payload, signature, verified) VALUES ($1,$2,$3,$4,$5)',
-          [source, eventType, parsed, sigHeader || null, false]
-        )
-        return res.status(401).json({ error: 'invalid signature' })
-      }
-
-      const { rows } = await query(
-        'INSERT INTO webhooks_inbox (source, event_type, payload, signature, verified) VALUES ($1,$2,$3,$4,$5) RETURNING id, received_at',
-        [source, eventType, parsed, sigHeader, true]
-      )
-      const stored = rows[0]
-      broadcast({ id: stored.id, source, event_type: eventType, received_at: stored.received_at })
-      res.json({ ok: true, id: stored.id })
+      const result = await handleInboundWebhook({
+        source,
+        rawBody,
+        signature: sigHeader,
+        secret,
+        eventTypeHeader: req.get('X-Event-Type') || null,
+        eventIdHeader: req.get('X-Event-Id') || null,
+      })
+      if (result.broadcastEvent) broadcast(result.broadcastEvent)
+      return res.status(result.status).json(result.body)
     } catch (err) {
       console.error('[webhooks] handler error:', err)
       res.status(500).json({ error: 'internal error' })
