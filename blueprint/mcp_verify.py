@@ -11,7 +11,7 @@ import threading
 import urllib.request
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://100.88.112.5:7333"
-KEY = sys.argv[2] if len(sys.argv) > 2 else "[REDACTED-DEAD]"
+KEY = sys.argv[2] if len(sys.argv) > 2 else ""
 
 session_id = None
 stop = threading.Event()
