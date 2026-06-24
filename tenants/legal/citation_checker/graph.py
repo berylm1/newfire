@@ -1,0 +1,130 @@
+import json
+import os
+import re
+import time
+from typing import TypedDict
+
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
+
+from courtlistener import verify_citation
+
+DEFAULT_MODEL = "gemma4-26b-64k"
+DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
+
+
+class WorkflowState(TypedDict, total=False):
+    tenant_id: str
+    prompt: str  # the draft brief text — never modified by this workflow
+    model: str
+    citations_found: list[str]
+    verification_results: list[dict]
+    draft: str
+    output: str
+    approved: bool
+    latency_ms: int
+    input_tokens: int
+    output_tokens: int
+
+
+def _llm() -> ChatOpenAI:
+    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
+    api_key = os.environ.get("LLM_API_KEY", "ollama")
+    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
+    return ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+
+
+def input_node(state: WorkflowState) -> WorkflowState:
+    return state
+
+
+def extract_citations_node(state: WorkflowState) -> WorkflowState:
+    llm = _llm()
+    extraction_prompt = (
+        "Extract every case citation and statute referenced in this legal "
+        "brief. Respond with ONLY a JSON object, no other text:\n"
+        '{"citations": ["case name or citation", ...]}\n\n'
+        f"Brief:\n{state['prompt']}"
+    )
+    response = llm.invoke(extraction_prompt)
+    text = str(response.content)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    try:
+        parsed = json.loads(match.group(0)) if match else {}
+    except json.JSONDecodeError:
+        parsed = {}
+
+    return {"citations_found": parsed.get("citations", [])}
+
+
+def verify_citations_node(state: WorkflowState) -> WorkflowState:
+    results = [verify_citation(c) for c in state.get("citations_found", [])]
+    return {"verification_results": results}
+
+
+def draft_report_node(state: WorkflowState) -> WorkflowState:
+    llm = _llm()
+    results = state.get("verification_results", [])
+    lines = []
+    for r in results:
+        if r.get("error"):
+            lines.append(f"- {r['query']}: LOOKUP FAILED ({r['error']}) — could not verify, needs manual check")
+        elif r["verified"]:
+            lines.append(
+                f"- {r['query']}: VERIFIED — matches \"{r['matched_case_name']}\" "
+                f"({', '.join(r.get('citations', []))}), {r.get('court')}, filed {r.get('date_filed')}"
+            )
+        else:
+            lines.append(f"- {r['query']}: NOT FOUND — no matching case in CourtListener, flag for attorney review")
+    summary = "\n".join(lines) or "No citations were extracted from this brief."
+
+    report_prompt = (
+        "Draft a short citation-check report for an attorney reviewing this "
+        "brief. List every citation and its verification status below. Do "
+        "NOT rewrite or edit the brief itself — only report findings and "
+        "flag anything unverifiable for the attorney to handle.\n\n"
+        f"Citation check results:\n{summary}"
+    )
+    started = time.perf_counter()
+    response = llm.invoke(report_prompt)
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    usage = response.usage_metadata or {}
+
+    return {
+        "model": os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+        "draft": str(response.content),
+        "latency_ms": latency_ms,
+        "input_tokens": int(usage.get("input_tokens", 0)),
+        "output_tokens": int(usage.get("output_tokens", 0)),
+    }
+
+
+def human_approval_interrupt(state: WorkflowState) -> WorkflowState:
+    approved = bool(
+        interrupt({"draft": state["draft"], "verification_results": state.get("verification_results", [])})
+    )
+    return {"approved": approved}
+
+
+def output_node(state: WorkflowState) -> WorkflowState:
+    return {"output": state["draft"] if state["approved"] else ""}
+
+
+builder = StateGraph(WorkflowState)
+builder.add_node("input", input_node)
+builder.add_node("extract_citations", extract_citations_node)
+builder.add_node("verify_citations", verify_citations_node)
+builder.add_node("draft_report", draft_report_node)
+builder.add_node("human_approval_interrupt", human_approval_interrupt)
+builder.add_node("output", output_node)
+builder.add_edge(START, "input")
+builder.add_edge("input", "extract_citations")
+builder.add_edge("extract_citations", "verify_citations")
+builder.add_edge("verify_citations", "draft_report")
+builder.add_edge("draft_report", "human_approval_interrupt")
+builder.add_edge("human_approval_interrupt", "output")
+builder.add_edge("output", END)
+
+graph = builder.compile(checkpointer=InMemorySaver())
