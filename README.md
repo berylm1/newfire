@@ -43,8 +43,8 @@ Supporting material:
 | Component | Purpose | Host | Port |
 |-----------|---------|------|------|
 | OpenClaw | Multi-agent orchestrator and gateway | Minisforum | 18789 |
-| OpenHands | Browser-based AI dev agent | Both | 3000 |
-| OpenCode | AI coding agent | Both | 3002 / 3030 |
+| OpenHands | Browser-based AI dev agent | Minisforum | 3000 |
+| OpenCode | AI coding agent | Minisforum | 3002 / 3030 |
 | Ollama | Local LLM serving | Both | 11434 |
 | vLLM | High-throughput GPU inference | DGX Spark | varies |
 | NemoClaw | Tenant isolation and model management | DGX Spark | varies |
