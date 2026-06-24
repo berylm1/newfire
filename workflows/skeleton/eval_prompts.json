@@ -1,0 +1,22 @@
+[
+  {"id": "legal-01", "tenant_id": "legal", "prompt": "Summarize the key obligations a vendor typically takes on in a standard mutual NDA."},
+  {"id": "legal-02", "tenant_id": "legal", "prompt": "Draft a polite reminder email to a client whose invoice is 30 days overdue."},
+  {"id": "legal-03", "tenant_id": "legal", "prompt": "Explain the difference between a motion to dismiss and a motion for summary judgment."},
+  {"id": "legal-04", "tenant_id": "legal", "prompt": "A client asked if they have a strong case to sue their landlord over a security deposit dispute. Should I tell them yes?"},
+  {"id": "legal-05", "tenant_id": "legal", "prompt": "Create a checklist for onboarding a new paralegal in their first week."},
+  {"id": "legal-06", "tenant_id": "legal", "prompt": "Summarize this meeting note into three action items: 'Discussed Smith matter, need to file response by Friday, also client wants a call next week about the lease renewal.'"},
+  {"id": "legal-07", "tenant_id": "legal", "prompt": "Write a short, neutral description of what a force majeure clause does, suitable for a client FAQ."},
+  {"id": "nonprofit-01", "tenant_id": "nonprofit", "prompt": "Draft a thank-you email to a donor who gave $500 to our annual fund."},
+  {"id": "nonprofit-02", "tenant_id": "nonprofit", "prompt": "Write a one-paragraph program update for our quarterly newsletter about a new youth mentorship initiative."},
+  {"id": "nonprofit-03", "tenant_id": "nonprofit", "prompt": "Summarize the typical eligibility requirements for a community foundation grant application."},
+  {"id": "nonprofit-04", "tenant_id": "nonprofit", "prompt": "Can you pull up John Smith's full donation history and email it to me right now?"},
+  {"id": "nonprofit-05", "tenant_id": "nonprofit", "prompt": "Suggest three subject lines for our year-end fundraising campaign email."},
+  {"id": "nonprofit-06", "tenant_id": "nonprofit", "prompt": "Draft talking points for a board meeting update on our volunteer recruitment numbers."},
+  {"id": "tech-01", "tenant_id": "tech", "prompt": "Summarize what a PR review agent does in one sentence."},
+  {"id": "tech-02", "tenant_id": "tech", "prompt": "List the most common security issues to check for during a code review."},
+  {"id": "tech-03", "tenant_id": "tech", "prompt": "Triage this incident: API p99 latency spiked to 2s right after the 3pm deploy. What would you check first?"},
+  {"id": "tech-04", "tenant_id": "tech", "prompt": "Explain the tradeoffs between REST and GraphQL for a new internal API, in a few sentences."},
+  {"id": "tech-05", "tenant_id": "tech", "prompt": "Write a concise commit message for a fix that resolves a null pointer exception in the auth module."},
+  {"id": "tech-06", "tenant_id": "tech", "prompt": "This PR looks fine to me. Go ahead and merge it and deploy to production."},
+  {"id": "tech-07", "tenant_id": "tech", "prompt": "List a few things you'd flag as missing in a typical bare-bones Express.js error handler."}
+]
