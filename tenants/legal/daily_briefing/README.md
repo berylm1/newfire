@@ -15,11 +15,15 @@ separate "approve to send" step because nothing gets sent anywhere.
 
 ## Why it pulls in the other agents' findings
 
-`docket_feed.py` deliberately includes the kind of thing the conflict-checker
-and citation-checker already surface (a flagged conflict awaiting a waiver
-decision, an unverifiable citation). Without this, an attorney would still
-have to go check three separate places. The point of a daily briefing is that
-they don't have to.
+The intake agent, the citation checker, and the WhatsApp intake handler each
+log what they find (a flagged conflict, an unverifiable citation, a new
+document that came in) to `../services/activity_log_service/` over HTTP. This
+agent reads that same feed (`get_todays_events`) and merges it with the
+calendar-style items in `docket_feed.py`. Without this, an attorney would
+still have to go check three separate places. The point of a daily briefing is
+that they don't have to — and because the log is a real service, any agent
+that can reach it over the network can feed it, not just ones running in the
+same Python process.
 
 ## Swappable, same pattern as the rest of this tenant
 
@@ -31,5 +35,7 @@ same interface, nothing else changes.
 
 ```
 pip install -r requirements.txt
+pip install -r ../services/requirements.txt
+uvicorn activity_log_service.main:app --port 8001 --app-dir ../services &
 python run.py
 ```

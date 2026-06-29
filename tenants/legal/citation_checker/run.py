@@ -1,6 +1,10 @@
 import argparse
 import json
+import os
+import sys
 import uuid
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))
 
 from langgraph.types import Command
 
@@ -30,6 +34,16 @@ def main() -> None:
         result = graph.invoke(Command(resume=True), config=config)
     else:
         result = graph.invoke(Command(resume=False), config=config)
+
+    unverified = [r["query"] for r in result.get("verification_results", []) if not r.get("verified")]
+    if unverified:
+        from activity_log_service.client import log_event
+
+        log_event(
+            "citation_review",
+            "medium",
+            f"Citation check flagged {len(unverified)} citation(s) needing manual review before filing: {', '.join(unverified)}.",
+        )
 
     print(
         json.dumps(

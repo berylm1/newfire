@@ -7,6 +7,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from docket_feed import get_todays_docket
+from activity_log_service.client import get_todays_events
 
 DEFAULT_MODEL = "gemma4-26b-64k"
 DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
@@ -34,7 +35,8 @@ def input_node(state: WorkflowState) -> WorkflowState:
 
 
 def fetch_docket_node(state: WorkflowState) -> WorkflowState:
-    return {"docket": get_todays_docket()}
+    real_events = get_todays_events()
+    return {"docket": real_events + get_todays_docket()}
 
 
 def draft_briefing_node(state: WorkflowState) -> WorkflowState:

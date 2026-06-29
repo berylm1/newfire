@@ -1,9 +1,12 @@
-"""Today's docket — deadlines, follow-ups, and pending items.
+"""Today's docket — deadlines and follow-ups that don't come from another agent.
 
 Swappable interface, same pattern as conflicts_db.py and grants_gov.py: a real
-firm plugs in their actual calendar/case-management system here. The synthetic
-data below also deliberately surfaces what the other legal-tenant agents
-already found, so the briefing is one place to look instead of three.
+firm plugs in their actual calendar/case-management system here.
+
+Conflict flags and citation reviews aren't listed here anymore — those come
+from activity_log.py, logged for real by the intake and citation agents when
+they actually find something. This file is just the calendar-style items
+nothing else produces yet.
 """
 
 SYNTHETIC_DOCKET = [
@@ -11,22 +14,6 @@ SYNTHETIC_DOCKET = [
         "type": "court_deadline",
         "urgency": "high",
         "summary": "Response to motion to dismiss is due today in Okafor v. Whitfield Properties LLC.",
-    },
-    {
-        "type": "conflict_flag",
-        "urgency": "high",
-        "summary": (
-            "Yesterday's intake for Dana Okafor flagged a conflict: Marcus Whitfield is a "
-            "former client. Still needs a conflict-waiver decision before the matter proceeds."
-        ),
-    },
-    {
-        "type": "citation_review",
-        "urgency": "medium",
-        "summary": (
-            "The citation checker flagged one unverifiable case (\"Smithson v. General Fabricated "
-            "Holdings Corp.\") in the draft brief. Needs a manual check before filing."
-        ),
     },
     {
         "type": "client_followup",

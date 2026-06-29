@@ -9,7 +9,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
-from conflicts_db import check_conflicts
+from conflicts_service.client import check_conflicts
 
 DEFAULT_MODEL = "gemma4-26b-64k"
 DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
