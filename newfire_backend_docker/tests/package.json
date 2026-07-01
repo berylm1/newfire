@@ -1,0 +1,35 @@
+{
+  "name": "newfire-backend-tests",
+  "version": "1.0.0",
+  "description": "Tenant/RBAC integration test harness for NewFire backend",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "test:setup": "node scripts/setup-test-db.js",
+    "test:teardown": "node scripts/teardown-test-db.js",
+    "mock:server": "node mockServer.js",
+    "mock:test": "node mockServer.js & sleep 2 && npm test && kill $!"
+  },
+  "dependencies": {
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0",
+    "supertest": "^6.3.4",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "moduleFileExtensions": ["js", "json"],
+    "testMatch": ["**/tests/**/*.test.js"],
+    "collectCoverageFrom": ["src/**/*.js"],
+    "setupFilesAfterEnv": ["./tests/setup.js"],
+    "testTimeout": 30000
+  }
+}
