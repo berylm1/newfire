@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **23.6h** across 5 days.
+Total hours logged: **24h** across 5 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -20,4 +20,6 @@ Total hours logged: **23.6h** across 5 days.
 |  | 4h | stand up vector DB and RAG service for document search |
 |  | 0.1h | refresh worklog |
 |  | 2h | add CI pipeline with local DGX-backed code review |
-| | **8.6h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 0.3h | cap review script context and drop keep-alive to avoid hogging DGX memory |
+| | **9h** | *day total* |
