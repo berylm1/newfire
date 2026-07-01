@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **21.5h** across 5 days.
+Total hours logged: **23.6h** across 5 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -18,4 +18,6 @@ Total hours logged: **21.5h** across 5 days.
 | 2026-07-01 | 2h | add pytest coverage for activity log and conflicts services |
 |  | 0.5h | add auto-generated worklog from commit history |
 |  | 4h | stand up vector DB and RAG service for document search |
-| | **6.5h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 2h | add CI pipeline with local DGX-backed code review |
+| | **8.6h** | *day total* |
