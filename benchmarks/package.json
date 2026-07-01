@@ -1,0 +1,30 @@
+{
+  "name": "@newfire/benchmarks",
+  "version": "1.0.0",
+  "description": "Local/staging benchmark harness for NewFire backend and OpenClaw",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "benchmark:health": "node scripts/health-benchmark.js",
+    "benchmark:metrics": "node scripts/metrics-benchmark.js",
+    "benchmark:auth": "node scripts/auth-benchmark.js",
+    "benchmark:webhooks": "node scripts/webhooks-benchmark.js",
+    "benchmark:chat": "node scripts/chat-benchmark.js",
+    "benchmark:openclaw": "node scripts/openclaw-benchmark.js",
+    "benchmark:all": "npm run benchmark:health && npm run benchmark:metrics && npm run benchmark:auth && npm run benchmark:webhooks && npm run benchmark:chat && npm run benchmark:openclaw",
+    "parse-results": "node scripts/parse-results.js"
+  },
+  "keywords": [
+    "benchmark",
+    "load-testing",
+    "autocannon",
+    "performance"
+  ],
+  "dependencies": {
+    "autocannon": "^7.15.0",
+    "axios": "^1.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
