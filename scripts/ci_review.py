@@ -33,6 +33,8 @@ def review(diff):
         "model": MODEL,
         "messages": [{"role": "user", "content": PROMPT_TEMPLATE.format(diff=diff)}],
         "stream": False,
+        "options": {"num_ctx": 8192},
+        "keep_alive": 0,
     }
     req = urllib.request.Request(
         OLLAMA_URL,
