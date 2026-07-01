@@ -60,6 +60,12 @@ The platform is live at **newfire.app** with four real tenants onboarded. Active
 
 Every service is fronted by Tailscale or zrok2 + OpenZiti. No service is exposed on the public internet without an authenticated tunnel. Backups are encrypted, tenant data is scoped, and the immigration-law tenant runs against local-only models.
 
+## CI
+
+GitHub Actions runs lint (`ruff`) and `pytest` on every push and PR against main — see `.github/workflows/ci.yml`. It runs on GitHub's hosted runners, so it only checks code, not against anything on the homelab network.
+
+There's also a local review helper, `scripts/ci_review.py` — run it before opening a PR and it diffs your branch against `origin/main` and asks the DGX's own `qwen3-coder-30b` model (over Tailscale) for a second look. Nothing external, no API key, no keeping the diff anywhere but your own machine and the DGX.
+
 ## License
 
 Not yet specified. All material in this repository is proprietary to the NewFire project until a license is added.
