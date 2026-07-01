@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **17h** across 5 days.
+Total hours logged: **21.5h** across 5 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -16,4 +16,6 @@ Total hours logged: **17h** across 5 days.
 |  | 3h | split conflicts and activity log into services, wire vision intake and WhatsApp handler into shared feed |
 | | **5h** | *day total* |
 | 2026-07-01 | 2h | add pytest coverage for activity log and conflicts services |
-| | **2h** | *day total* |
+|  | 0.5h | add auto-generated worklog from commit history |
+|  | 4h | stand up vector DB and RAG service for document search |
+| | **6.5h** | *day total* |
