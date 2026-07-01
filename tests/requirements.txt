@@ -1,0 +1,2 @@
+# Test dependencies for webhook security tests
+pytest>=7.0.0
