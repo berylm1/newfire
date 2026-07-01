@@ -1,0 +1,146 @@
+# Source-Control Manifest for NewFire Platform
+# This file documents all services in the NewFire platform with their
+# source control status. Used by the audit script to enforce GitHub governance.
+#
+# Fields:
+#   - service: Service name
+#   - local_path: Local filesystem path (on Mac developer machine)
+#   - repo_url: GitHub repository URL (null if not configured)
+#   - owner: Repository owner/organization
+#   - deployment_host: Where the service is deployed (null if not deployed)
+#   - deployment_path: Path on deployment host (null if not deployed)
+#   - risk_level: "production" or "development"
+#   - github_governed: Whether the service has a valid GitHub remote
+#   - notes: Additional context
+#
+# Risk levels:
+#   - production: Load-bearing service, requires GitHub governance
+#   - development: In development, GitHub governance optional but recommended
+#
+# GitHub governance status:
+#   - A service is "governed" if repo_url is non-null and the remote is accessible
+
+services:
+  - service: newfire-backend
+    local_path: /Users/oluwajobamalomo/newfire-backend/
+    repo_url: null
+    owner: null
+    deployment_host: america (127.0.0.1:3200)
+    deployment_path: /home/newwaveclaw/newfire-backend-docker/docker-compose.yml
+    container: newfire-backend
+    risk_level: production
+    github_governed: false
+    notes: |
+      Git init'd on 2026-04-21 but had no remote configured at that time.
+      Stack: Express + Postgres, JWT auth, smart routing via OpenClaw.
+      Latest container tag: newfire-backend:1.18.2-provisioner (as of 2026-04-25)
+
+  - service: newfire-app (frontend)
+    local_path: /Users/oluwajobamalomo/newfire-app/
+    repo_url: null
+    owner: null
+    deployment_host: america (:4000)
+    deployment_path: built and shipped as newfire-app container
+    container: newfire-app nginx
+    risk_level: production
+    github_governed: false
+    notes: |
+      Git init'd on 2026-04-21 but had no remote configured at that time.
+      Stack: React 19 + Vite + Tailwind + react-router-dom
+
+  - service: newfire-nss-control
+    local_path: /Users/oluwajobamalomo/newfire-nss-control/
+    repo_url: null
+    owner: null
+    deployment_host: america (:3300)
+    deployment_path: /home/newwaveclaw/newfire-nss-control/
+    container: nss-control
+    risk_level: production
+    github_governed: false
+    notes: |
+      Express + Postgres + JWT control plane on Minisforum.
+      Owns nss_* tables in newfire-db
+
+  - service: newfire-nss-runner
+    local_path: /Users/oluwajobamalomo/newfire-nss-runner/
+    repo_url: null
+    owner: null
+    deployment_host: ghana (100.88.112.5:3301)
+    deployment_path: mirror on ghana
+    container: nss-runner
+    risk_level: production
+    github_governed: false
+    notes: |
+      Node + dockerode + zod runner on DGX Spark.
+      Owns Docker socket and NVIDIA toolkit.
+
+  - service: newfire-nss-portal
+    local_path: /Users/oluwajobamalomo/newfire-nss-portal/
+    repo_url: null
+    owner: null
+    deployment_host: america (:4001)
+    deployment_path: on america
+    container: nss-portal
+    risk_level: production
+    github_governed: false
+    notes: |
+      React SPA at dev.newfire.app for sandbox management.
+
+  - service: newfire-nss-router
+    local_path: /Users/oluwajobamalomo/newfire-nss-router/
+    repo_url: null
+    owner: null
+    deployment_host: ghana (:4500)
+    deployment_path: on ghana
+    container: nss-router
+    risk_level: production
+    github_governed: false
+    notes: |
+      FastAPI classifier that rewrites model: nss-auto to the right backend
+      before forwarding to LiteLLM.
+
+  - service: newfire-mcp (scaffold)
+    local_path: /Users/oluwajobamalomo/newfire-mcp/
+    repo_url: null
+    owner: null
+    deployment_host: null
+    deployment_path: not deployed
+    container: null
+    risk_level: development
+    github_governed: false
+    notes: |
+      JSON-RPC 2.0 over POST /rpc. Intended to run on ghana next to Qdrant.
+      Scaffold only, not yet deployed.
+
+  - service: newfire-sdk (scaffold)
+    local_path: /Users/oluwajobamalomo/newfire-sdk/
+    repo_url: null
+    owner: null
+    deployment_host: null
+    deployment_path: not published
+    container: null
+    risk_level: development
+    github_governed: false
+    notes: |
+      ESM-only @newfire/sdk v0.1.0. Scaffold only, not yet published.
+
+  - service: newfire-infra (this repo)
+    local_path: /Users/oluwajobamalomo/newfire-infra/
+    repo_url: https://github.com/berylm1/newfire
+    owner: berylm1
+    deployment_host: n/a
+    deployment_path: this repo
+    container: n/a
+    risk_level: production
+    github_governed: true
+    notes: |
+      Only confirmed service with a working remote and push history.
+      Contains: numbered docs, blueprint, progress notes, scripts, infra.
+
+# Audit rules:
+# 1. All services with risk_level=production MUST have github_governed=true
+# 2. A service is github_governed if:
+#    - repo_url is non-null AND
+#    - The local path exists AND
+#    - The remote URL is accessible (or has an approved vendored baseline)
+# 3. Vendored baselines for production services must be documented in the notes field

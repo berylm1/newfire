@@ -74,6 +74,47 @@ Where every piece of the NewFire platform lives on disk and where the deployed c
 - `newfire-nss-control`, `newfire-nss-runner`, `newfire-nss-portal`, `newfire-mcp`, and `newfire-sdk` each have their own local git repos. Remote status is unknown without checking each.
 - `newfire-infra` (this repo) is the only one confirmed to have a working remote and push history.
 
+## Source-Control Governance Status
+
+The CEO directive requires all production services to have GitHub-governed source control. See [issue #27](https://github.com/berylm1/newfire/issues/27) for context.
+
+### Current Governance Status (as of 2026-07-01)
+
+| Service | Risk Level | GitHub Governed | Notes |
+|---|---|---|---|
+| newfire-backend | Production | ❌ No | Needs GitHub remote configured |
+| newfire-app (frontend) | Production | ❌ No | Needs GitHub remote configured |
+| newfire-nss-control | Production | ❌ No | Needs GitHub remote configured |
+| newfire-nss-runner | Production | ❌ No | Needs GitHub remote configured |
+| newfire-nss-portal | Production | ❌ No | Needs GitHub remote configured |
+| newfire-nss-router | Production | ❌ No | Needs GitHub remote configured |
+| newfire-mcp (scaffold) | Development | ❌ No | Scaffold only, not deployed |
+| newfire-sdk (scaffold) | Development | ❌ No | Scaffold only, not published |
+| newfire-infra (this repo) | Production | ✅ Yes | Confirmed GitHub remote |
+
+### Machine-Readable Manifest
+
+A complete source-control manifest is available at `source-control-manifest.yaml`. This manifest is read by the audit script to enforce governance requirements.
+
+### Audit Script
+
+Run the governance audit script to verify compliance:
+
+```bash
+./scripts/audit-source-governance.sh [--verbose]
+```
+
+The script will exit with code 1 if any production service lacks GitHub governance.
+
+### Required Actions
+
+To achieve full GitHub governance:
+
+1. Configure GitHub remotes for each service (or document approved vendored baselines)
+2. Update the `repo_url` field in `source-control-manifest.yaml`
+3. Set `github_governed: true` for each service
+4. Re-run the audit script to verify compliance
+
 ## Where to add a new project
 
 If you start a new piece of the platform:
