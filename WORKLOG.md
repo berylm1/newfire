@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **29.1h** across 6 days.
+Total hours logged: **30.2h** across 6 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -26,4 +26,6 @@ Total hours logged: **29.1h** across 6 days.
 | | **9.1h** | *day total* |
 | 2026-07-02 | 2h | add approval_service for durable HITL approval queue |
 |  | 3h | make intake and citation-checker approvals durable across processes |
-| | **5h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 1h | fix duplicate approvals and missing id on HITL resume |
+| | **6.1h** | *day total* |
