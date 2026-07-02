@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **30.2h** across 6 days.
+Total hours logged: **30.4h** across 6 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -28,4 +28,6 @@ Total hours logged: **30.2h** across 6 days.
 |  | 3h | make intake and citation-checker approvals durable across processes |
 |  | 0.1h | refresh worklog |
 |  | 1h | fix duplicate approvals and missing id on HITL resume |
-| | **6.1h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 0.1h | document idempotent-create behavior in approval_service README |
+| | **6.3h** | *day total* |
