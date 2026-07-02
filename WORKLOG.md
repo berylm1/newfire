@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **24h** across 5 days.
+Total hours logged: **29.1h** across 6 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -22,4 +22,8 @@ Total hours logged: **24h** across 5 days.
 |  | 2h | add CI pipeline with local DGX-backed code review |
 |  | 0.1h | refresh worklog |
 |  | 0.3h | cap review script context and drop keep-alive to avoid hogging DGX memory |
-| | **9h** | *day total* |
+|  | 0.1h | refresh worklog |
+| | **9.1h** | *day total* |
+| 2026-07-02 | 2h | add approval_service for durable HITL approval queue |
+|  | 3h | make intake and citation-checker approvals durable across processes |
+| | **5h** | *day total* |
