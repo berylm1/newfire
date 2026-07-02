@@ -13,7 +13,11 @@ remembers what's pending and what was decided.
 
 `POST /approvals` — body `{"tenant_id", "thread_id", "kind", "draft",
 "context"}`, creates a pending approval and returns the full record
-(`id`, `status: "pending"`, timestamps).
+(`id`, `status: "pending"`, timestamps). Idempotent on `(thread_id, kind)` —
+calling it again with the same pair returns the existing record instead of
+creating a duplicate, which matters because LangGraph re-runs a node's full
+body on resume, so the node that calls this before `interrupt()` calls it
+again every time that thread resumes.
 
 `GET /approvals/pending?tenant_id=` — list pending approvals, optionally
 filtered by tenant.
