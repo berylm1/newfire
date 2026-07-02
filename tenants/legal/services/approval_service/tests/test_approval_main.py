@@ -1,3 +1,4 @@
+import itertools
 import os
 import sys
 
@@ -7,13 +8,21 @@ from fastapi.testclient import TestClient
 
 from approval_service import main
 
+_thread_ids = itertools.count()
+
 
 def _test_client(tmp_path, monkeypatch):
     monkeypatch.setattr(main, "STORE_PATH", str(tmp_path / "approvals.json"))
     return TestClient(main.app)
 
 
-def _create(client, tenant_id="acme-legal", thread_id="thread-1", kind="intake_memo", draft="draft text"):
+def _create(client, tenant_id="acme-legal", thread_id=None, kind="intake_memo", draft="draft text"):
+    # Real callers (LangGraph nodes) mint a fresh uuid4 thread_id per graph
+    # run, so distinct approvals always have distinct thread_ids — matching
+    # that here keeps unrelated _create() calls in a test from colliding
+    # under the thread_id+kind idempotency key in create_approval().
+    if thread_id is None:
+        thread_id = f"thread-{next(_thread_ids)}"
     return client.post(
         "/approvals",
         json={"tenant_id": tenant_id, "thread_id": thread_id, "kind": kind, "draft": draft, "context": {"conflicts": []}},
@@ -32,12 +41,12 @@ def test_health_returns_ok():
 def test_create_approval_returns_pending_record(tmp_path, monkeypatch):
     client = _test_client(tmp_path, monkeypatch)
 
-    response = _create(client)
+    response = _create(client, thread_id="thread-fixed")
 
     assert response.status_code == 200
     body = response.json()
     assert body["tenant_id"] == "acme-legal"
-    assert body["thread_id"] == "thread-1"
+    assert body["thread_id"] == "thread-fixed"
     assert body["kind"] == "intake_memo"
     assert body["draft"] == "draft text"
     assert body["context"] == {"conflicts": []}
@@ -47,6 +56,20 @@ def test_create_approval_returns_pending_record(tmp_path, monkeypatch):
     assert body["resumed"] is False
     assert "id" in body
     assert "created_at" in body
+
+
+def test_create_approval_same_thread_and_kind_returns_existing_record(tmp_path, monkeypatch):
+    # LangGraph re-runs a node's full body from the top on resume, so the
+    # node's create_approval() call before interrupt() fires again on every
+    # resume. This must return the original record, not mint a duplicate —
+    # otherwise every resume leaves a phantom pending approval behind.
+    client = _test_client(tmp_path, monkeypatch)
+
+    first = _create(client, thread_id="thread-dup").json()
+    second = _create(client, thread_id="thread-dup").json()
+
+    assert second["id"] == first["id"]
+    assert len(client.get("/approvals/pending").json()) == 1
 
 
 def test_create_approval_missing_field_returns_422(tmp_path, monkeypatch):

@@ -61,6 +61,19 @@ def _save(approvals: dict[str, dict]) -> None:
 @app.post("/approvals")
 def create_approval(approval: ApprovalIn) -> dict:
     approvals = _load()
+
+    # LangGraph re-runs a node's whole function body from the top on resume,
+    # including any code before the interrupt() call — so the same paused
+    # thread submits here again on every resume. thread_id+kind is a stable
+    # key for "the approval this interrupt is waiting on," so treat this as
+    # get-or-create instead of minting a fresh duplicate each time.
+    existing = next(
+        (a for a in approvals.values() if a["thread_id"] == approval.thread_id and a["kind"] == approval.kind),
+        None,
+    )
+    if existing is not None:
+        return existing
+
     record = {
         "id": str(uuid.uuid4()),
         "tenant_id": approval.tenant_id,

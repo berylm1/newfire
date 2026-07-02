@@ -116,7 +116,13 @@ def human_approval_interrupt(state: WorkflowState) -> WorkflowState:
         context={"verification_results": state.get("verification_results", [])},
     )
     approved = bool(
-        interrupt({"draft": state["draft"], "verification_results": state.get("verification_results", [])})
+        interrupt(
+            {
+                "draft": state["draft"],
+                "verification_results": state.get("verification_results", []),
+                "approval_id": approval["id"],
+            }
+        )
     )
     return {"approved": approved, "approval_id": approval["id"]}
 

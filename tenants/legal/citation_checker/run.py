@@ -27,11 +27,15 @@ def main() -> None:
     print("\n--- Draft report ---\n")
     print(result["draft"])
 
-    # The graph is now paused on human_approval_interrupt with a durable
-    # approval_service record backing it — nothing left to do here but wait
-    # for a decision. resume_approvals.py picks this up from any process,
-    # any time, instead of blocking this one on a synchronous input().
-    print(f"\nSubmitted for approval (id={result['approval_id']}).")
+    # The graph is now paused on human_approval_interrupt — it hasn't returned
+    # normally, so "approval_id" isn't in result yet. It's on the interrupt
+    # payload instead, which is what's available at pause time.
+    approval_id = result["__interrupt__"][0].value["approval_id"]
+
+    # A durable approval_service record now backs this pause — nothing left
+    # to do here but wait for a decision. resume_approvals.py picks this up
+    # from any process, any time, instead of blocking this one on input().
+    print(f"\nSubmitted for approval (id={approval_id}).")
     print("Run resume_approvals.py once a decision is made.")
 
 
