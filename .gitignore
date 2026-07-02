@@ -1,2 +1,4 @@
 __pycache__/
 activity_log.jsonl
+approvals.json
+checkpoints.db

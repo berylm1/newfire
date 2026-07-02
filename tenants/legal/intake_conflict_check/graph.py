@@ -1,22 +1,27 @@
 import json
 import os
 import re
+import sqlite3
 import time
 from typing import TypedDict
 
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
+from approval_service.client import create_approval
 from conflicts_service.client import check_conflicts
 
 DEFAULT_MODEL = "gemma4-26b-64k"
 DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
 
+CHECKPOINT_DB_PATH = os.path.join(os.path.dirname(__file__), "checkpoints.db")
+
 
 class WorkflowState(TypedDict, total=False):
     tenant_id: str
+    thread_id: str  # LangGraph checkpointer thread id — also handed to the approval queue so a later process can resume this exact run
     prompt: str  # raw prospective-client intake email
     model: str
     party_names: list[str]
@@ -25,6 +30,7 @@ class WorkflowState(TypedDict, total=False):
     draft: str
     output: str
     approved: bool
+    approval_id: str
     latency_ms: int
     input_tokens: int
     output_tokens: int
@@ -106,8 +112,15 @@ def draft_memo_node(state: WorkflowState) -> WorkflowState:
 
 
 def human_approval_interrupt(state: WorkflowState) -> WorkflowState:
+    approval = create_approval(
+        tenant_id=state["tenant_id"],
+        thread_id=state["thread_id"],
+        kind="intake_memo",
+        draft=state["draft"],
+        context={"conflicts": state.get("conflicts", [])},
+    )
     approved = bool(interrupt({"draft": state["draft"], "conflicts": state.get("conflicts", [])}))
-    return {"approved": approved}
+    return {"approved": approved, "approval_id": approval["id"]}
 
 
 def output_node(state: WorkflowState) -> WorkflowState:
@@ -129,4 +142,8 @@ builder.add_edge("draft_memo", "human_approval_interrupt")
 builder.add_edge("human_approval_interrupt", "output")
 builder.add_edge("output", END)
 
-graph = builder.compile(checkpointer=InMemorySaver())
+_conn = sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False)
+_checkpointer = SqliteSaver(_conn)
+_checkpointer.setup()
+
+graph = builder.compile(checkpointer=_checkpointer)

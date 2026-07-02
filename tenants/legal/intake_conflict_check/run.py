@@ -1,13 +1,10 @@
 import argparse
-import json
 import os
 import sys
 import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "shared"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))
-
-from langgraph.types import Command
 
 from graph import graph
 
@@ -30,8 +27,9 @@ def main() -> None:
         with open(args.email, encoding="utf-8") as f:
             email_text = f.read()
 
-    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
-    result = graph.invoke({"tenant_id": "legal", "prompt": email_text}, config=config)
+    thread_id = str(uuid.uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+    result = graph.invoke({"tenant_id": "legal", "thread_id": thread_id, "prompt": email_text}, config=config)
 
     print(f"Matter type: {result.get('matter_type')}")
     print(f"Parties: {result.get('party_names')}")
@@ -39,39 +37,12 @@ def main() -> None:
     print("\n--- Draft memo ---\n")
     print(result["draft"])
 
-    approved = input("\nApprove draft? [y/N]: ").strip().lower() == "y"
-    if approved:
-        result = graph.invoke(Command(resume=True), config=config)
-    else:
-        result = graph.invoke(Command(resume=False), config=config)
-
-    conflicts = result.get("conflicts", [])
-    if conflicts:
-        from activity_log_service.client import log_event
-
-        names = ", ".join(c["name"] for c in conflicts)
-        log_event(
-            "conflict_flag",
-            "high",
-            f"New intake ({result.get('matter_type', 'unspecified matter')}) flagged a conflict: {names}. Needs a decision before this matter proceeds.",
-        )
-
-    print(
-        json.dumps(
-            {
-                "tenant_id": "legal",
-                "model": result["model"],
-                "matter_type": result.get("matter_type"),
-                "party_names": result.get("party_names"),
-                "conflicts": result.get("conflicts"),
-                "output": result.get("output", ""),
-                "approved": approved,
-                "latency_ms": result["latency_ms"],
-                "input_tokens": result["input_tokens"],
-                "output_tokens": result["output_tokens"],
-            }
-        )
-    )
+    # The graph is now paused on human_approval_interrupt with a durable
+    # approval_service record backing it — nothing left to do here but wait
+    # for a decision. resume_approvals.py picks this up from any process,
+    # any time, instead of blocking this one on a synchronous input().
+    print(f"\nSubmitted for approval (id={result['approval_id']}).")
+    print("Run resume_approvals.py once a decision is made.")
 
 
 if __name__ == "__main__":
