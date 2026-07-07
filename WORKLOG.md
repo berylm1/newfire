@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **30.4h** across 6 days.
+Total hours logged: **35h** across 7 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -30,4 +30,8 @@ Total hours logged: **30.4h** across 6 days.
 |  | 1h | fix duplicate approvals and missing id on HITL resume |
 |  | 0.1h | refresh worklog |
 |  | 0.1h | document idempotent-create behavior in approval_service README |
-| | **6.3h** | *day total* |
+|  | 0.1h | refresh worklog |
+| | **6.4h** | *day total* |
+| 2026-07-03 | 3.5h | add webhook_service for generic inbound triggers |
+|  | 1h | add process_webhook_events poller |
+| | **4.5h** | *day total* |
