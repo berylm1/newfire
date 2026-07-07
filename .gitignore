@@ -2,3 +2,5 @@ __pycache__/
 activity_log.jsonl
 approvals.json
 checkpoints.db
+webhook_events.json
+webhook_secrets.json

@@ -35,7 +35,17 @@ A separate resume script (`shared/resume_approvals.py`) polls `GET
 /approvals/resumable` and replays decisions into the paused graph. See
 `approval_service/README.md` for details.
 
-All four are swappable the same way the rest of this tenant is: point the
+**Webhook Service** (`webhook_service/`, default port 8005)
+Owns the generic inbound trigger for this tenant — the front door for
+external events (a new client email, a website contact-form submission, a
+CRM webhook) reaching an agent without a human invoking it directly.
+`POST /webhooks/{tenant_id}/{source}` verifies an HMAC signature and queues
+the event, `GET /events/pending` lists what's waiting. A separate poller
+(`shared/process_webhook_events.py`) polls for `source="email"` events and
+feeds them into the intake/conflict-check agent. See
+`webhook_service/README.md` for details.
+
+All five are swappable the same way the rest of this tenant is: point the
 storage inside `main.py` at a real database and nothing calling the service
 needs to change.
 
@@ -47,14 +57,17 @@ uvicorn activity_log_service.main:app --port 8001 &
 uvicorn conflicts_service.main:app --port 8002 &
 uvicorn rag_service.main:app --port 8003 &
 uvicorn approval_service.main:app --port 8004 &
+uvicorn webhook_service.main:app --port 8005 &
 ```
 
 Agents pick these up automatically via `ACTIVITY_LOG_SERVICE_URL` /
-`CONFLICTS_SERVICE_URL` / `RAG_SERVICE_URL` / `APPROVAL_SERVICE_URL` (default
-to `http://localhost:8001` / `http://localhost:8002` / `http://localhost:8003`
-/ `http://localhost:8004`). No code changes needed in the agents beyond
+`CONFLICTS_SERVICE_URL` / `RAG_SERVICE_URL` / `APPROVAL_SERVICE_URL` /
+`WEBHOOK_SERVICE_URL` (default to `http://localhost:8001` /
+`http://localhost:8002` / `http://localhost:8003` / `http://localhost:8004`
+/ `http://localhost:8005`). No code changes needed in the agents beyond
 importing `client.py` from each service instead of the old shared modules.
 
-In production, all four run as systemd services on the gateway box
+In production, all five run as systemd services on the gateway box
 (`legal-activity-log` on 8101, `legal-conflicts` on 8102, `legal-rag` on
-8103, `legal-approval` on 8104), each bound to `127.0.0.1` only.
+8103, `legal-approval` on 8104, `legal-webhook` on 8105), each bound to
+`127.0.0.1` only.
