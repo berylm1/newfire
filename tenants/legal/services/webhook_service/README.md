@@ -93,3 +93,12 @@ The poller picks this up via `WEBHOOK_SERVICE_URL` (defaults to
 In production this runs as `legal-webhook.service` on port 8105, same
 pattern as `legal-activity-log` (8101), `legal-conflicts` (8102),
 `legal-rag` (8103), and `legal-approval` (8104).
+
+**Production must set `ACTIVITY_LOG_SERVICE_URL=http://127.0.0.1:8101`** in
+the unit's `Environment=` — `activity_log_service.client`'s default
+(`http://localhost:8001`) is the *dev* port, not the production one. Without
+this, the request to `/webhooks/{tenant_id}/{source}` still succeeds (the
+activity-log call is best-effort and swallows its own failure), but nothing
+ever shows up in the activity feed and there's no error to notice. Found
+this exact gap after deploying — every webhook received had been silently
+failing to log until the unit picked up the env var.

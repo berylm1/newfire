@@ -25,6 +25,12 @@ without the poller crashing mid-run.
 
 One-shot by design — run it by hand, from a cron job, or a systemd timer
 (`python3 process_webhook_events.py`). It does not loop or sleep on its own.
+
+In production, both `WEBHOOK_SERVICE_URL` (http://127.0.0.1:8105) and
+`ACTIVITY_LOG_SERVICE_URL` (http://127.0.0.1:8101) must be set explicitly —
+their client defaults are dev ports, not the offset production ones. Missed
+this exact thing once already on webhook_service's own unit; every event
+still got queued, but the activity-log call silently no-op'd.
 """
 
 import os
