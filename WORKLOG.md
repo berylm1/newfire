@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **35h** across 7 days.
+Total hours logged: **35.4h** across 8 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -34,4 +34,7 @@ Total hours logged: **35h** across 7 days.
 | | **6.4h** | *day total* |
 | 2026-07-03 | 3.5h | add webhook_service for generic inbound triggers |
 |  | 1h | add process_webhook_events poller |
-| | **4.5h** | *day total* |
+|  | 0.1h | refresh worklog |
+| | **4.6h** | *day total* |
+| 2026-07-07 | 0.3h | document required production env vars for webhook_service and its poller |
+| | **0.3h** | *day total* |
