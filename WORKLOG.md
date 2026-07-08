@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **39.5h** across 9 days.
+Total hours logged: **40.8h** across 9 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -40,4 +40,6 @@ Total hours logged: **39.5h** across 9 days.
 |  | 0.1h | refresh worklog |
 | | **0.4h** | *day total* |
 | 2026-07-08 | 4h | add memory_service for cross-session client history |
-| | **4h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 1.2h | fix client_key routing and recall error-handling in memory_service |
+| | **5.3h** | *day total* |
