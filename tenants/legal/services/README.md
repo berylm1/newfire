@@ -45,7 +45,18 @@ the event, `GET /events/pending` lists what's waiting. A separate poller
 feeds them into the intake/conflict-check agent. See
 `webhook_service/README.md` for details.
 
-All five are swappable the same way the rest of this tenant is: point the
+**Memory Service** (`memory_service/`, default port 8006)
+Owns cross-session note history so an agent isn't starting cold every time it
+sees a party it may have seen before. `POST
+/memory/{tenant_id}/{client_key}/notes` to append a note, `GET
+/memory/{tenant_id}/{client_key}` to read a client's note history (an empty
+list, not a 404, if there's none yet). `client_key` is whatever string the
+caller sends (typically a party name from an intake email) — matched
+exactly, no fuzzy name matching or dedup. `intake_conflict_check`'s
+`recall_node` reads this before drafting a memo; `resume_approvals.py` writes
+to it after a human decides. See `memory_service/README.md` for details.
+
+All six are swappable the same way the rest of this tenant is: point the
 storage inside `main.py` at a real database and nothing calling the service
 needs to change.
 
@@ -58,16 +69,18 @@ uvicorn conflicts_service.main:app --port 8002 &
 uvicorn rag_service.main:app --port 8003 &
 uvicorn approval_service.main:app --port 8004 &
 uvicorn webhook_service.main:app --port 8005 &
+uvicorn memory_service.main:app --port 8006 &
 ```
 
 Agents pick these up automatically via `ACTIVITY_LOG_SERVICE_URL` /
 `CONFLICTS_SERVICE_URL` / `RAG_SERVICE_URL` / `APPROVAL_SERVICE_URL` /
-`WEBHOOK_SERVICE_URL` (default to `http://localhost:8001` /
-`http://localhost:8002` / `http://localhost:8003` / `http://localhost:8004`
-/ `http://localhost:8005`). No code changes needed in the agents beyond
-importing `client.py` from each service instead of the old shared modules.
+`WEBHOOK_SERVICE_URL` / `MEMORY_SERVICE_URL` (default to
+`http://localhost:8001` / `http://localhost:8002` / `http://localhost:8003` /
+`http://localhost:8004` / `http://localhost:8005` / `http://localhost:8006`).
+No code changes needed in the agents beyond importing `client.py` from each
+service instead of the old shared modules.
 
-In production, all five run as systemd services on the gateway box
+In production, all six run as systemd services on the gateway box
 (`legal-activity-log` on 8101, `legal-conflicts` on 8102, `legal-rag` on
-8103, `legal-approval` on 8104, `legal-webhook` on 8105), each bound to
-`127.0.0.1` only.
+8103, `legal-approval` on 8104, `legal-webhook` on 8105, `legal-memory` on
+8106), each bound to `127.0.0.1` only.

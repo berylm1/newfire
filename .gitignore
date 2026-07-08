@@ -4,3 +4,4 @@ approvals.json
 checkpoints.db
 webhook_events.json
 webhook_secrets.json
+memory_notes.json

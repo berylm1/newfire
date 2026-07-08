@@ -17,6 +17,7 @@ One-shot by design — run it by hand, from a cron job, or a systemd timer
 
 import os
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))
@@ -50,17 +51,50 @@ GRAPH_LOADERS = {
 
 def _finalize_intake_conflict_check(result: dict) -> None:
     conflicts = result.get("conflicts", [])
-    if not conflicts:
+    if conflicts:
+        from activity_log_service.client import log_event
+
+        names = ", ".join(c["name"] for c in conflicts)
+        log_event(
+            "conflict_flag",
+            "high",
+            f"New intake ({result.get('matter_type', 'unspecified matter')}) flagged a conflict: {names}. Needs a decision before this matter proceeds.",
+        )
+
+    _remember_intake_conflict_check(result)
+
+
+def _remember_intake_conflict_check(result: dict) -> None:
+    # Runs regardless of approve/reject — a rejected intake is exactly the kind
+    # of outcome a future intake for the same party should know about. Best-
+    # effort like the activity-log call above: a memory_service hiccup here
+    # shouldn't crash the resume script or block marking the approval resumed.
+    party_names = result.get("party_names", [])
+    if not party_names:
         return
 
-    from activity_log_service.client import log_event
+    try:
+        from memory_service.client import add_note
 
-    names = ", ".join(c["name"] for c in conflicts)
-    log_event(
-        "conflict_flag",
-        "high",
-        f"New intake ({result.get('matter_type', 'unspecified matter')}) flagged a conflict: {names}. Needs a decision before this matter proceeds.",
-    )
+        matter_type = result.get("matter_type", "unspecified matter")
+        conflicts = result.get("conflicts", [])
+        approved = result.get("approved", False)
+        date = datetime.now(timezone.utc).date().isoformat()
+        note = (
+            f"Intake matter ({matter_type}): "
+            f"{'conflict flagged, ' if conflicts else ''}"
+            f"{'approved' if approved else 'rejected'} on {date}."
+        )
+        for party in party_names:
+            add_note(
+                tenant_id=result["tenant_id"],
+                client_key=party,
+                note=note,
+                matter_type=matter_type,
+                source="intake_conflict_check",
+            )
+    except Exception:
+        pass
 
 
 def _finalize_citation_checker(result: dict) -> None:

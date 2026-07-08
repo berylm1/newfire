@@ -12,6 +12,7 @@ from langgraph.types import interrupt
 
 from approval_service.client import create_approval
 from conflicts_service.client import check_conflicts
+from memory_service.client import get_client_memory
 
 DEFAULT_MODEL = "gemma4-26b-64k"
 DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
@@ -26,6 +27,7 @@ class WorkflowState(TypedDict, total=False):
     model: str
     party_names: list[str]
     matter_type: str
+    prior_history: list[dict]  # per-party note history from memory_service, populated by recall_node — empty for first-time parties
     conflicts: list[dict]
     draft: str
     output: str
@@ -71,6 +73,22 @@ def extract_node(state: WorkflowState) -> WorkflowState:
     }
 
 
+def recall_node(state: WorkflowState) -> WorkflowState:
+    # memory_service does exact-match lookup only on whatever string extract_node
+    # pulled out as a party name — no fuzzy matching, so this only surfaces prior
+    # history when the same name string was used as a client_key before. Parties
+    # with no history are left out entirely rather than carried as empty entries,
+    # so draft_memo_node can treat an empty list as "nothing to add" everywhere.
+    prior_history = []
+    for name in state.get("party_names", []):
+        memory = get_client_memory(state["tenant_id"], name)
+        notes = memory.get("notes", [])
+        if notes:
+            prior_history.append({"party": name, "notes": notes})
+
+    return {"prior_history": prior_history}
+
+
 def conflict_check_node(state: WorkflowState) -> WorkflowState:
     conflicts = check_conflicts(state.get("party_names", []))
     return {"conflicts": conflicts}
@@ -87,6 +105,13 @@ def draft_memo_node(state: WorkflowState) -> WorkflowState:
         )
         or "No conflicts found."
     )
+    prior_history = state.get("prior_history", [])
+    history_section = ""
+    if prior_history:
+        history_lines = "\n".join(
+            f"- {entry['party']}: {'; '.join(n['note'] for n in entry['notes'])}" for entry in prior_history
+        )
+        history_section = f"\n\nPrior history with these parties:\n{history_lines}"
     memo_prompt = (
         "Draft a short intake memo for a partner to review, based on this "
         "prospective-client matter. Include: matter type, parties involved, "
@@ -94,7 +119,8 @@ def draft_memo_node(state: WorkflowState) -> WorkflowState:
         "to engagement or escalate the conflict for partner review.\n\n"
         f"Matter type: {state.get('matter_type', 'unknown')}\n"
         f"Parties: {', '.join(state.get('party_names', [])) or 'none extracted'}\n"
-        f"Conflict check results:\n{conflicts_summary}\n\n"
+        f"Conflict check results:\n{conflicts_summary}"
+        f"{history_section}\n\n"
         f"Original intake email:\n{state['prompt']}"
     )
     started = time.perf_counter()
@@ -132,13 +158,15 @@ def output_node(state: WorkflowState) -> WorkflowState:
 builder = StateGraph(WorkflowState)
 builder.add_node("input", input_node)
 builder.add_node("extract", extract_node)
+builder.add_node("recall", recall_node)
 builder.add_node("conflict_check", conflict_check_node)
 builder.add_node("draft_memo", draft_memo_node)
 builder.add_node("human_approval_interrupt", human_approval_interrupt)
 builder.add_node("output", output_node)
 builder.add_edge(START, "input")
 builder.add_edge("input", "extract")
-builder.add_edge("extract", "conflict_check")
+builder.add_edge("extract", "recall")
+builder.add_edge("recall", "conflict_check")
 builder.add_edge("conflict_check", "draft_memo")
 builder.add_edge("draft_memo", "human_approval_interrupt")
 builder.add_edge("human_approval_interrupt", "output")
