@@ -26,15 +26,21 @@ chronological note history, nothing more.
 
 ## Endpoints
 
-`POST /memory/{tenant_id}/{client_key}/notes` — body `{"note": str,
+`POST /memory/{tenant_id}/notes` — body `{"client_key": str, "note": str,
 "matter_type": str | None, "source": str}`. Appends a note and returns the
 created record (`id`, timestamps). Append-only — there's no update or delete
 endpoint, because this is a history, not a mutable profile.
 
-`GET /memory/{tenant_id}/{client_key}` — returns `{"client_key", "notes":
+`GET /memory/{tenant_id}?client_key=...` — returns `{"client_key", "notes":
 [...]}`, all notes for that client in chronological order. Returns an empty
 list, not a 404, when the client has no history — a first-time intake is the
 common case, not an error, and callers shouldn't need to handle a 404 for it.
+
+`client_key` travels in the request body / query string, not the URL path,
+on purpose — party and company names routinely contain `/` (`"Jane Doe d/b/a
+Acme Consulting"` is a completely ordinary legal name), which breaks
+path-based routing outright. A body field and a query param have no such
+ambiguity.
 
 `GET /health` — liveness check.
 

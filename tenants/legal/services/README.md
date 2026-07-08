@@ -47,12 +47,13 @@ feeds them into the intake/conflict-check agent. See
 
 **Memory Service** (`memory_service/`, default port 8006)
 Owns cross-session note history so an agent isn't starting cold every time it
-sees a party it may have seen before. `POST
-/memory/{tenant_id}/{client_key}/notes` to append a note, `GET
-/memory/{tenant_id}/{client_key}` to read a client's note history (an empty
-list, not a 404, if there's none yet). `client_key` is whatever string the
-caller sends (typically a party name from an intake email) — matched
-exactly, no fuzzy name matching or dedup. `intake_conflict_check`'s
+sees a party it may have seen before. `POST /memory/{tenant_id}/notes`
+(`client_key` in the body) to append a note, `GET /memory/{tenant_id}?
+client_key=...` to read a client's note history (an empty list, not a 404,
+if there's none yet) — `client_key` stays out of the URL path since party
+and company names routinely contain `/` (`"d/b/a"` constructs). `client_key`
+is whatever string the caller sends (typically a party name from an intake
+email) — matched exactly, no fuzzy name matching or dedup. `intake_conflict_check`'s
 `recall_node` reads this before drafting a memo; `resume_approvals.py` writes
 to it after a human decides. See `memory_service/README.md` for details.
 

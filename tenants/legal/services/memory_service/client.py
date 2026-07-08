@@ -19,9 +19,12 @@ def add_note(
     matter_type: str | None = None,
     source: str | None = None,
 ) -> dict:
+    # client_key travels in the JSON body, not the URL path — party/company
+    # names routinely contain "/" (e.g. "d/b/a" constructs), which breaks
+    # path-based routing outright.
     response = requests.post(
-        f"{BASE_URL}/memory/{tenant_id}/{client_key}/notes",
-        json={"note": note, "matter_type": matter_type, "source": source or ""},
+        f"{BASE_URL}/memory/{tenant_id}/notes",
+        json={"client_key": client_key, "note": note, "matter_type": matter_type, "source": source or ""},
         timeout=5,
     )
     response.raise_for_status()
@@ -29,6 +32,6 @@ def add_note(
 
 
 def get_client_memory(tenant_id: str, client_key: str) -> dict:
-    response = requests.get(f"{BASE_URL}/memory/{tenant_id}/{client_key}", timeout=5)
+    response = requests.get(f"{BASE_URL}/memory/{tenant_id}", params={"client_key": client_key}, timeout=5)
     response.raise_for_status()
     return response.json()

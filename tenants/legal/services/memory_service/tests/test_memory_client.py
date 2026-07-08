@@ -22,8 +22,9 @@ def test_add_note_posts_payload_and_returns_record(mock_post):
     )
 
     mock_post.assert_called_once_with(
-        f"{client.BASE_URL}/memory/acme-legal/Marcus Whitfield/notes",
+        f"{client.BASE_URL}/memory/acme-legal/notes",
         json={
+            "client_key": "Marcus Whitfield",
             "note": "Prior matter, no conflict.",
             "matter_type": "llc_formation",
             "source": "intake_conflict_check",
@@ -53,6 +54,8 @@ def test_get_client_memory_returns_parsed_json(mock_get):
 
     result = client.get_client_memory("acme-legal", "Marcus Whitfield")
 
-    mock_get.assert_called_once_with(f"{client.BASE_URL}/memory/acme-legal/Marcus Whitfield", timeout=5)
+    mock_get.assert_called_once_with(
+        f"{client.BASE_URL}/memory/acme-legal", params={"client_key": "Marcus Whitfield"}, timeout=5
+    )
     mock_response.raise_for_status.assert_called_once()
     assert result == mock_response.json.return_value

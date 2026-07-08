@@ -54,6 +54,17 @@ def test_recall_node_returns_empty_list_when_no_party_has_history(mock_get_clien
     assert result["prior_history"] == []
 
 
+@patch("graph.get_client_memory")
+def test_recall_node_survives_memory_service_being_unreachable(mock_get_client_memory):
+    # memory_service is an enhancement, not a hard dependency -- a connection
+    # error mid-recall shouldn't fail the whole intake, just skip that party.
+    mock_get_client_memory.side_effect = ConnectionError("memory_service unreachable")
+
+    result = intake_graph.recall_node({"tenant_id": "acme-legal", "party_names": ["Marcus Whitfield"]})
+
+    assert result["prior_history"] == []
+
+
 @patch("graph.ChatOpenAI")
 def test_draft_memo_prompt_includes_prior_history_when_present(mock_chat_openai):
     mock_llm = MagicMock()

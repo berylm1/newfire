@@ -35,6 +35,7 @@ app = FastAPI(title="Memory Service")
 
 
 class NoteIn(BaseModel):
+    client_key: str
     note: str
     matter_type: str | None = None
     source: str
@@ -59,14 +60,14 @@ def _key(tenant_id: str, client_key: str) -> str:
     return f"{tenant_id}::{client_key}"
 
 
-@app.post("/memory/{tenant_id}/{client_key}/notes")
-def add_note(tenant_id: str, client_key: str, note: NoteIn) -> dict:
+@app.post("/memory/{tenant_id}/notes")
+def add_note(tenant_id: str, note: NoteIn) -> dict:
     notes = _load()
-    key = _key(tenant_id, client_key)
+    key = _key(tenant_id, note.client_key)
     record = {
         "id": str(uuid.uuid4()),
         "tenant_id": tenant_id,
-        "client_key": client_key,
+        "client_key": note.client_key,
         "note": note.note,
         "matter_type": note.matter_type,
         "source": note.source,
@@ -77,8 +78,11 @@ def add_note(tenant_id: str, client_key: str, note: NoteIn) -> dict:
     return record
 
 
-@app.get("/memory/{tenant_id}/{client_key}")
+@app.get("/memory/{tenant_id}")
 def get_client_memory(tenant_id: str, client_key: str) -> dict:
+    # client_key is a query param, not a path segment — party/company names
+    # routinely contain "/" (e.g. "d/b/a" constructs), which breaks path
+    # routing outright. A query param has no such ambiguity.
     notes = _load()
     key = _key(tenant_id, client_key)
     # No history is the common case (most first-time intakes), not an error —

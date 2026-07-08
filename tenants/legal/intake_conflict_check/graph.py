@@ -79,9 +79,16 @@ def recall_node(state: WorkflowState) -> WorkflowState:
     # history when the same name string was used as a client_key before. Parties
     # with no history are left out entirely rather than carried as empty entries,
     # so draft_memo_node can treat an empty list as "nothing to add" everywhere.
+    #
+    # Best-effort like the activity-log calls elsewhere in this tenant — recall
+    # is an enhancement, not a hard dependency, so a memory_service hiccup
+    # degrades to "no prior history" instead of failing the whole intake.
     prior_history = []
     for name in state.get("party_names", []):
-        memory = get_client_memory(state["tenant_id"], name)
+        try:
+            memory = get_client_memory(state["tenant_id"], name)
+        except Exception:
+            continue
         notes = memory.get("notes", [])
         if notes:
             prior_history.append({"party": name, "notes": notes})
