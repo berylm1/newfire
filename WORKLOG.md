@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **35.4h** across 8 days.
+Total hours logged: **39.5h** across 9 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -37,4 +37,7 @@ Total hours logged: **35.4h** across 8 days.
 |  | 0.1h | refresh worklog |
 | | **4.6h** | *day total* |
 | 2026-07-07 | 0.3h | document required production env vars for webhook_service and its poller |
-| | **0.3h** | *day total* |
+|  | 0.1h | refresh worklog |
+| | **0.4h** | *day total* |
+| 2026-07-08 | 4h | add memory_service for cross-session client history |
+| | **4h** | *day total* |
