@@ -39,3 +39,22 @@ jobs:
             exit 0
           fi
           exit $code
+
+  security-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install security test dependencies
+        working-directory: ./server-config
+        run: npm ci --omit=dev --no-audit --no-fund || npm install --no-audit --no-fund
+
+      - name: Install Jest for security tests
+        run: npm install jest@29 --save-dev --prefix server-config --no-audit --no-fund
+
+      - name: Run security tests
+        run: npm test --prefix server-config
