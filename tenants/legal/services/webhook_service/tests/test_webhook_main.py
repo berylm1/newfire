@@ -116,7 +116,7 @@ def test_webhook_for_unknown_tenant_returns_401(tmp_path, monkeypatch):
     signature = _sign("whatever", raw_body)
 
     response = client.post(
-        f"/webhooks/no-such-tenant/email",
+        "/webhooks/no-such-tenant/email",
         content=raw_body,
         headers={"X-Webhook-Signature": signature, "Content-Type": "application/json"},
     )
