@@ -74,7 +74,16 @@ SMTP/WhatsApp provider yet — the backend is a local stub that records what
 would have been sent. `daily_briefing` calls this to deliver the drafted
 briefing. See `notify_service/README.md` for details.
 
-All eight are swappable the same way the rest of this tenant is: point the
+**Client Hub Service** (`client_hub_service/`, default port 8009)
+Owns the centralized client-facing view — composes `case_service` and
+`notify_service` rather than owning its own storage. `GET
+/hub/{tenant_id}` lists a tenant's cases with an added
+`outstanding_balance` field (who's paid, who hasn't). `POST
+/hub/{tenant_id}/{case_id}/email` sends an email to that client via
+`notify_service` and logs the send to `activity_log_service`. See
+`client_hub_service/README.md` for details.
+
+All nine are swappable the same way the rest of this tenant is: point the
 storage inside `main.py` (or `backends.py`, for `notify_service`) at a real
 database or provider and nothing calling the service needs to change.
 
@@ -90,20 +99,22 @@ uvicorn webhook_service.main:app --port 8005 &
 uvicorn memory_service.main:app --port 8006 &
 uvicorn case_service.main:app --port 8007 &
 uvicorn notify_service.main:app --port 8008 &
+uvicorn client_hub_service.main:app --port 8009 &
 ```
 
 Agents pick these up automatically via `ACTIVITY_LOG_SERVICE_URL` /
 `CONFLICTS_SERVICE_URL` / `RAG_SERVICE_URL` / `APPROVAL_SERVICE_URL` /
 `WEBHOOK_SERVICE_URL` / `MEMORY_SERVICE_URL` / `CASE_SERVICE_URL` /
-`NOTIFY_SERVICE_URL` (default to `http://localhost:8001` /
-`http://localhost:8002` / `http://localhost:8003` / `http://localhost:8004` /
-`http://localhost:8005` / `http://localhost:8006` / `http://localhost:8007` /
-`http://localhost:8008`). No code changes needed in the agents beyond
+`NOTIFY_SERVICE_URL` / `CLIENT_HUB_SERVICE_URL` (default to
+`http://localhost:8001` / `http://localhost:8002` / `http://localhost:8003`
+/ `http://localhost:8004` / `http://localhost:8005` / `http://localhost:8006`
+/ `http://localhost:8007` / `http://localhost:8008` /
+`http://localhost:8009`). No code changes needed in the agents beyond
 importing `client.py` from each service instead of the old shared modules.
 
 In production, the first six run as systemd services on the gateway box
 (`legal-activity-log` on 8101, `legal-conflicts` on 8102, `legal-rag` on
 8103, `legal-approval` on 8104, `legal-webhook` on 8105, `legal-memory` on
-8106), each bound to `127.0.0.1` only. `case_service` and `notify_service`
-follow the same 8107/8108 numbering but aren't deployed yet — this round is
-local-only.
+8106), each bound to `127.0.0.1` only. `case_service`, `notify_service`, and
+`client_hub_service` follow the same 8107/8108/8109 numbering but aren't
+deployed yet — this round is local-only.
