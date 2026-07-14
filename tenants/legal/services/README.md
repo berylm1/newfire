@@ -57,9 +57,26 @@ email) — matched exactly, no fuzzy name matching or dedup. `intake_conflict_ch
 `recall_node` reads this before drafting a memo; `resume_approvals.py` writes
 to it after a human decides. See `memory_service/README.md` for details.
 
-All six are swappable the same way the rest of this tenant is: point the
-storage inside `main.py` at a real database and nothing calling the service
-needs to change.
+**Case Service** (`case_service/`, default port 8007)
+Owns the client/case record — the structured foundation the tenant didn't
+have before. `POST /cases` to create one, `GET /cases/{tenant_id}` to list
+a tenant's cases, `GET /cases/{tenant_id}/{case_id}` to fetch one, `PATCH
+/cases/{tenant_id}/{case_id}` for a partial update (dict fields like
+`key_dates` and `fee_status` merge instead of replacing wholesale). `daily_briefing`
+reads this for its docket instead of the old hardcoded sample file. See
+`case_service/README.md` for details.
+
+**Notify Service** (`notify_service/`, default port 8008)
+Owns generic outbound delivery — the mirror image of `webhook_service`.
+`POST /notify` to send a message via a named channel (`email` or
+`whatsapp`), `GET /notify/log` to see what's gone out. Not wired to a real
+SMTP/WhatsApp provider yet — the backend is a local stub that records what
+would have been sent. `daily_briefing` calls this to deliver the drafted
+briefing. See `notify_service/README.md` for details.
+
+All eight are swappable the same way the rest of this tenant is: point the
+storage inside `main.py` (or `backends.py`, for `notify_service`) at a real
+database or provider and nothing calling the service needs to change.
 
 ## Running locally
 
@@ -71,17 +88,22 @@ uvicorn rag_service.main:app --port 8003 &
 uvicorn approval_service.main:app --port 8004 &
 uvicorn webhook_service.main:app --port 8005 &
 uvicorn memory_service.main:app --port 8006 &
+uvicorn case_service.main:app --port 8007 &
+uvicorn notify_service.main:app --port 8008 &
 ```
 
 Agents pick these up automatically via `ACTIVITY_LOG_SERVICE_URL` /
 `CONFLICTS_SERVICE_URL` / `RAG_SERVICE_URL` / `APPROVAL_SERVICE_URL` /
-`WEBHOOK_SERVICE_URL` / `MEMORY_SERVICE_URL` (default to
-`http://localhost:8001` / `http://localhost:8002` / `http://localhost:8003` /
-`http://localhost:8004` / `http://localhost:8005` / `http://localhost:8006`).
-No code changes needed in the agents beyond importing `client.py` from each
-service instead of the old shared modules.
+`WEBHOOK_SERVICE_URL` / `MEMORY_SERVICE_URL` / `CASE_SERVICE_URL` /
+`NOTIFY_SERVICE_URL` (default to `http://localhost:8001` /
+`http://localhost:8002` / `http://localhost:8003` / `http://localhost:8004` /
+`http://localhost:8005` / `http://localhost:8006` / `http://localhost:8007` /
+`http://localhost:8008`). No code changes needed in the agents beyond
+importing `client.py` from each service instead of the old shared modules.
 
-In production, all six run as systemd services on the gateway box
+In production, the first six run as systemd services on the gateway box
 (`legal-activity-log` on 8101, `legal-conflicts` on 8102, `legal-rag` on
 8103, `legal-approval` on 8104, `legal-webhook` on 8105, `legal-memory` on
-8106), each bound to `127.0.0.1` only.
+8106), each bound to `127.0.0.1` only. `case_service` and `notify_service`
+follow the same 8107/8108 numbering but aren't deployed yet — this round is
+local-only.

@@ -5,3 +5,6 @@ checkpoints.db
 webhook_events.json
 webhook_secrets.json
 memory_notes.json
+cases.json
+sent_log.json
+attorney_contacts.json
