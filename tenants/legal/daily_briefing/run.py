@@ -25,6 +25,7 @@ def main() -> None:
                 "latency_ms": result["latency_ms"],
                 "input_tokens": result["input_tokens"],
                 "output_tokens": result["output_tokens"],
+                "notify_id": result.get("notify_id"),
             }
         )
     )
