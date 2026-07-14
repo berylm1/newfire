@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **40.8h** across 9 days.
+Total hours logged: **49.2h** across 10 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -42,4 +42,9 @@ Total hours logged: **40.8h** across 9 days.
 | 2026-07-08 | 4h | add memory_service for cross-session client history |
 |  | 0.1h | refresh worklog |
 |  | 1.2h | fix client_key routing and recall error-handling in memory_service |
-| | **5.3h** | *day total* |
+|  | 0.1h | refresh worklog |
+| | **5.4h** | *day total* |
+| 2026-07-14 | 5h | add case_service and notify_service foundation for immigration pivot |
+|  | 2h | wire daily_briefing to case_service and notify_service |
+|  | 1.3h | fix overdue key dates being silently dropped from the briefing |
+| | **8.3h** | *day total* |
