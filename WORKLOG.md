@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **51.5h** across 10 days.
+Total hours logged: **52.1h** across 10 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -51,4 +51,6 @@ Total hours logged: **51.5h** across 10 days.
 |  | 0.1h | fix ruff lint failure breaking CI since the webhook_service push |
 |  | 0.1h | refresh worklog |
 |  | 2h | add client_hub_service composing case and notify for Phase 3 |
-| | **10.6h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 0.5h | allow browser CORS on client_hub_service for the demo UI |
+| | **11.2h** | *day total* |
