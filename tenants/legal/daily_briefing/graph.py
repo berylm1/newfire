@@ -34,6 +34,9 @@ class WorkflowState(TypedDict, total=False):
 
 
 def _urgency_for_days_remaining(days_remaining: int) -> str:
+    # Overdue is at least as urgent as "due in 3 days" — a visa that already
+    # expired unnoticed is the exact crisis this is meant to catch, not a
+    # lower priority than one still counting down.
     if days_remaining <= 3:
         return "high"
     if days_remaining <= 7:
@@ -45,7 +48,14 @@ def _docket_items_from_cases(cases: list[dict]) -> list[dict]:
     """Turn each case's key_dates into docket-style items for any date within
     KEY_DATE_WINDOW_DAYS — closer dates get higher urgency. This replaces the
     old hardcoded docket_feed.py sample data with the real per-case dates
-    now on file in case_service."""
+    now on file in case_service.
+
+    A date already in the past is surfaced too, not excluded — an already-
+    expired visa is still on file and still unresolved, and staying silent
+    about it would read as "nothing urgent" when the opposite is true. There
+    is no lower bound on the window for this reason; only the upper bound
+    (KEY_DATE_WINDOW_DAYS) limits what's included.
+    """
     today = datetime.now(timezone.utc).date()
     items = []
     for case in cases:
@@ -56,17 +66,26 @@ def _docket_items_from_cases(cases: list[dict]) -> list[dict]:
                 continue
 
             days_remaining = (target_date - today).days
-            if 0 <= days_remaining <= KEY_DATE_WINDOW_DAYS:
+            if days_remaining <= KEY_DATE_WINDOW_DAYS:
                 label = date_label.replace("_", " ")
-                plural = "" if days_remaining == 1 else "s"
+                if days_remaining < 0:
+                    days_overdue = -days_remaining
+                    plural = "" if days_overdue == 1 else "s"
+                    summary = (
+                        f"{label.capitalize()} for {case['client_name']} was "
+                        f"{days_overdue} day{plural} ago and still needs attention."
+                    )
+                else:
+                    plural = "" if days_remaining == 1 else "s"
+                    summary = (
+                        f"{label.capitalize()} for {case['client_name']} is in "
+                        f"{days_remaining} day{plural}."
+                    )
                 items.append(
                     {
                         "type": "key_date",
                         "urgency": _urgency_for_days_remaining(days_remaining),
-                        "summary": (
-                            f"{label.capitalize()} for {case['client_name']} is in "
-                            f"{days_remaining} day{plural}."
-                        ),
+                        "summary": summary,
                     }
                 )
     return items
