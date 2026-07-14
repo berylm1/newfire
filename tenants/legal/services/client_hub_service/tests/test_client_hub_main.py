@@ -28,6 +28,18 @@ def test_health_returns_ok():
     assert response.json() == {"status": "ok"}
 
 
+def test_cors_allows_browser_origin(monkeypatch):
+    # The only service in the tenant meant to be hit directly from a
+    # browser demo page — confirm the middleware is actually wired, not
+    # just imported.
+    monkeypatch.setattr(main, "list_cases", lambda tenant_id, case_type=None: [])
+    client = _test_client()
+
+    response = client.get("/hub/acme-legal", headers={"Origin": "http://localhost:8500"})
+
+    assert response.headers["access-control-allow-origin"] == "*"
+
+
 def test_get_hub_computes_outstanding_balance(monkeypatch):
     cases = [
         {

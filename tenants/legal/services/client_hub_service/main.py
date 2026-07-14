@@ -20,6 +20,7 @@ happened that day.
 
 import requests
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from activity_log_service.client import log_event
@@ -27,6 +28,18 @@ from case_service.client import get_case, list_cases
 from notify_service.client import send_notification
 
 app = FastAPI(title="Client Hub Service")
+
+# This is the one service in the tenant meant to be called directly from a
+# browser rather than only from another backend process — nothing built so
+# far has a front end. Wide open because this service isn't deployed or
+# reachable from outside localhost yet (see README); narrow this to a real
+# origin once a front end actually ships.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 class ClientEmailIn(BaseModel):
