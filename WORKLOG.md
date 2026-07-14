@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **49.2h** across 10 days.
+Total hours logged: **49.4h** across 10 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -47,4 +47,6 @@ Total hours logged: **49.2h** across 10 days.
 | 2026-07-14 | 5h | add case_service and notify_service foundation for immigration pivot |
 |  | 2h | wire daily_briefing to case_service and notify_service |
 |  | 1.3h | fix overdue key dates being silently dropped from the briefing |
-| | **8.3h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 0.1h | fix ruff lint failure breaking CI since the webhook_service push |
+| | **8.5h** | *day total* |
