@@ -1,0 +1,3 @@
+[REDACTED]
+
+The GitHub token was moved into /home/beryl/.hermes/.env for Hermes automation and removed from Obsidian so the vault does not preserve secrets.

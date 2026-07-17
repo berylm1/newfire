@@ -1,0 +1,52 @@
+server:
+  replicaCount: 1
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: "250m"
+    limits:
+      memory: 1Gi
+      cpu: "500m"
+
+cassandra:
+  enabled: false
+
+postgresql:
+  enabled: true
+  auth:
+    username: temporal
+    password: temporal
+    database: temporal
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: "200m"
+      limits:
+        memory: 512Mi
+        cpu: "400m"
+
+elasticsearch:
+  enabled: false
+
+web:
+  replicaCount: 1
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: "100m"
+    limits:
+      memory: 256Mi
+      cpu: "200m"
+
+admintools:
+  enabled: true
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false

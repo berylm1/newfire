@@ -1,0 +1,49 @@
+# PHASE 1.b LiteLLM diff: add nss-thinker-heavy-vllm route pointing at vLLM Super NVFP4 on :30002.
+# Splice these blocks into your existing /app/config.yaml at the marked locations.
+# Co-exists with Nano Omni (:30000); does NOT replace nss-elite.
+
+# ============================================================
+# ADD: new route in model_list section, near nss-thinker-heavy
+# ============================================================
+- model_name: nss-thinker-heavy-vllm
+  litellm_params:
+    model: openai/nemotron-super-vllm
+    api_base: http://127.0.0.1:30002/v1
+    api_key: dummy
+    timeout: 1800
+    max_retries: 1
+    max_tokens: 4096
+  model_info:
+    description: "Nemotron-3-Super-120B-A12B NVFP4 via vLLM Blackwell-nightly on :30002. Tool-call parser: qwen3_coder. Co-resident with Nano Omni (~99GB total). Stop if memory pressure observed."
+
+# ============================================================
+# ADD: fallback entries in litellm_settings.fallbacks (preserve existing chains)
+# ============================================================
+# - nss-thinker-heavy-vllm: ["nss-elite", "nss-thinker", "nss-general"]
+# - nss-thinker-heavy: ["nss-thinker-heavy-vllm", "nss-thinker-deep", "nss-thinker"]
+#
+# Rationale: if the new vLLM route fails (OOM, container crash, parser bug),
+# fall back to nss-elite (Nano Omni, smaller but reliable) rather than to the
+# slow Ollama-Super path. Also update nss-thinker-heavy to prefer the vLLM
+# variant first since it's now the same model just better-served.
+
+# ============================================================
+# OPTIONAL: alias for OpenHands callers that want "the strongest reasoner"
+# ============================================================
+- model_name: nss-reasoner-best
+  litellm_params:
+    model: openai/nemotron-super-vllm
+    api_base: http://127.0.0.1:30002/v1
+    api_key: dummy
+    timeout: 1800
+    max_retries: 1
+  model_info:
+    description: "Alias: best available local reasoner. Currently = nss-thinker-heavy-vllm."
+
+# ============================================================
+# ROLLBACK
+# ============================================================
+# To remove this route:
+# 1. Delete the three blocks above from /app/config.yaml
+# 2. docker exec litellm kill -HUP 1   (or docker restart litellm)
+# 3. bash ~/stop_super_vllm.sh         (kills the vLLM container)

@@ -1,0 +1,38 @@
+def main():
+    # Prompt user for ODM hostname and port
+    hostname = input("Enter the ODM hostname (default: 20.162.217.108): ").strip() or "20.162.217.108"
+    port_input = input("Enter the ODM port (default: 3000): ").strip()
+    port = int(port_input) if port_input.isdigit() else 3000
+
+    # Prompt user for image folder paths
+    images_folder = input("Enter the path to the folder containing images: ").strip()
+    results_folder = input("Enter the path to save results: ").strip()
+    dtm_results_folder = input("Enter the path to save DTM results: ").strip()
+
+    # Validate inputs
+    if not os.path.exists(images_folder) or not os.path.isdir(images_folder):
+        print("Invalid images folder path.")
+        return
+    if not results_folder or not dtm_results_folder:
+        print("Invalid results folder paths.")
+        return
+
+    # Connect to ODM node
+    node = connect_to_node(hostname, port)
+    if not node:
+        return
+    
+    # Define processing options
+    options = {
+        'fast-orthophoto': True,
+        'orthophoto-resolution': 4,
+        'split': 500,
+        'split-overlap': 5,
+        'use-exif': True
+    }
+
+    # Process images with DTM options
+    process_with_dtm(node, images_folder, results_folder, dtm_results_folder, options, file_limit=375)
+
+if __name__ == "__main__":
+    main()

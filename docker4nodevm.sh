@@ -1,0 +1,26 @@
+#installing docker for nodes VM
+#--updates system
+sudo apt update
+sudo apt upgrade -y
+#--installs prerequisites
+sudo apt install -y \
+apt-transport-https \
+ca-certificates \
+curl \
+software-properties-common
+#--adds docker's official key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+#--set ups stable repo
+echo \
+"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+$(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+#--install docker
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+#--check version (docker -v)
+#--add user to docker grp(whoami)
+sudo usermod -aG docker $USER
+#--apply group changes
+newgrp docker
+#Finally run command
+docker run -p 3001:3000 opendronemap/nodeodm
