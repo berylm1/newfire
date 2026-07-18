@@ -1,3 +1,4 @@
+# Existing repo ignores
 __pycache__/
 activity_log.jsonl
 approvals.json
@@ -8,3 +9,32 @@ memory_notes.json
 cases.json
 sent_log.json
 attorney_contacts.json
+
+# Secrets / credentials
+**/.ssh/**
+**/.env
+**/.env.*
+**/.git-credentials
+**/*credentials*
+**/*.pem
+**/*.key
+**/id_rsa*
+**/.netrc
+**/.aws/**
+
+# Private app/system data (not docs)
+**/node_modules/**
+**/.cache/**
+**/.npm/**
+**/.npm-global/**
+**/.docker/**
+**/.config/**
+**/.local/**
+**/backups/**
+**/.bash_history*
+**/.hermes/**
+
+# OS / editor
+.DS_Store
+*.swp
+*.tmp
