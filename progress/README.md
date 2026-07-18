@@ -151,7 +151,116 @@ cloudflared tunnel (Minisforum, systemd service)
 | Nemotron Nano 30B | Cloud | OpenRouter | 131K | Free cloud fallback |
 
 ---
+## Application Layer
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Newfire App | `newfire-app:latest` | - | ⚠️ Restarting | Main application frontend |
+| Newfire Backend | `newfire-backend:1.18.3-tasklist` | 3200 (internal) | ✅ Healthy | Backend API with tasklist features |
+| OpenCode | `newfire/opencode:local` | - | ✅ Running | Code editor/IDE service |
 
+
+---
+## Ai & Agent Services 
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| OpenHands App | `ghcr.io/openhands/agent-canvas:latest` | - | ✅ Running | AI agent interface |
+| Agent Canvas | `ghcr.io/openhands/agent-canvas:latest` | 8001→8000 | ✅ Healthy | Agent visualization canvas |
+| Agent Canvas Nginx | `nginx:alpine` | 8002→80 | ✅ Healthy | Reverse proxy for agent canvas |
+| IDR Rust Service 1 | `alpine:latest` | 8002 (internal) | ✅ Running | Rust microservice instance |
+| IDR Rust Service 2 | `alpine:latest` | 8002 (internal) | ✅ Running | Rust microservice instance |
+
+---
+## Identity & Access Management
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Keycloak | `quay.io/keycloak/keycloak:26.2.5` | 8080 | ✅ Running | IAM and SSO provider |
+| Permify | `ghcr.io/permify/permify:latest` | 3476, 3478 | ✅ Running | Fine-grained authorization service |
+| Vault | `hashicorp/vault:latest` | 8200 | ✅ Running | Secrets management |
+
+---
+## Databases
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Healthpoint Postgres | `postgres:16-alpine` | 5432 | ✅ Healthy | Primary database (Healthpoint) |
+| Twenty Database | `postgres:16` | 5432 (internal) | ✅ Healthy | Database for Twenty CRM |
+| Newfire Database | `postgres:16-alpine` | 5432 (internal) | ✅ Healthy | Application database |
+| Redis | `redis:7-alpine` | - | ✅ Healthy | In-memory cache/session store |
+| Qdrant | `qdrant/qdrant:latest` | 6333-6334 (localhost) | ✅ Running | Vector database for embeddings |
+| PgBouncer | `edoburu/pgbouncer` | 6432 | ✅ Running | Connection pooler for Postgres |
+
+---
+## Message Streaming
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Kafka | `apache/kafka:3.7.0` | 9092 | ✅ Running | Event streaming platform |
+| Fluvio SC | `infinyon/fluvio:latest` | 9103→9003 | ✅ Running | Streaming controller |
+| Fluvio SPU | `infinyon/fluvio:latest` | 9110-9111→9010-9011 | ✅ Running | Streaming processing unit |
+
+---
+## Observability Stack
+Metrics Collection
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Prometheus | `prom/prometheus:latest` | 9090 | ✅ Running | Metrics storage and querying |
+| Node Exporter | `prom/node-exporter:v1.8.2` | 9100 (internal) | ✅ Running | Host metrics exporter |
+| cAdvisor | `gcr.io/cadvisor/cadvisor:v0.49.1` | 8080 (internal) | ✅ Healthy | Container metrics exporter |
+| Postgres Exporter | `prometheuscommunity/postgres-exporter:v0.16.0` | 9187 (internal) | ✅ Running | Postgres metrics exporter |
+| Blackbox Exporter | `prom/blackbox-exporter:latest` | 9115 | ✅ Running | Endpoint probing/monitoring |
+
+Logging
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Loki | `grafana/loki:latest` | 3101→3100 | ✅ Running | Log aggregation system |
+| NSS Loki | `grafana/loki:3.2.0` | 3100 (internal) | ✅ Running | Secondary Loki instance |
+| Promtail | `grafana/promtail:latest` | - | ✅ Running | Log shipper |
+| NSS Promtail | `grafana/promtail:3.2.0` | - | ✅ Running | Secondary log shipper |
+
+Visualization & Alerting
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Grafana | `grafana/grafana:11.3.0` | 3399→3000 (localhost) | ✅ Running | Dashboards and visualization |
+| Alertmanager | `prom/alertmanager:v0.27.0` | - | ⚠️ Restarting | Alert routing and deduplication |
+
+Tracing
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Jaeger | `jaegertracing/all-in-one:latest` | 16686 | ✅ Running | Distributed tracing UI |
+
+Infrastructure Services
+| Service | Image | Port(s) | Status | Description |
+|---------|-------|---------|--------|-------------|
+| Dapr Placement | `daprio/dapr:latest` | 50005→50001 | ✅ Running | Actor placement service |
+| Temporal UI | `temporalio/ui:2.26.2` | 8085→8080 | ✅ Running | Workflow orchestration UI |
+| Cloudflared | `cloudflare/cloudflared:latest` | - | ✅ Running | Cloudflare tunnel |
+
+---
+Port Mapping Summary
+
+Externally Accessible Ports
+| Port | Service | URL |
+|------|---------|-----|
+| 8001 | Agent Canvas | `http://localhost:8001` |
+| 8002 | Nginx (Agent Canvas) | `http://localhost:8002` |
+| 8080 | Keycloak | `http://localhost:8080` |
+| 8085 | Temporal UI | `http://localhost:8085` |
+| 8200 | Vault | `http://localhost:8200` |
+| 9000 | MinIO API | `http://localhost:9000` |
+| 9001 | MinIO Console | `http://localhost:9001` |
+| 9090 | Prometheus | `http://localhost:9090` |
+| 9092 | Kafka | `localhost:9092` |
+| 9115 | Blackbox Exporter | `http://localhost:9115` |
+| 16686 | Jaeger UI | `http://localhost:16686` |
+
+----
+Localhost Only Ports
+| Port | Service |
+|------|---------|
+| 3399 | Grafana |
+| 6333-6334 | Qdrant |
+
+
+
+---
 ## Three-Tier Inference Architecture
 
 ```
@@ -197,6 +306,17 @@ External App → APISIX (:9080) → [API Key Check] → DGX Spark Ollama → Res
 | OpenRouter API Key | `[REDACTED-REVOKED]` |
 | NemoClaw Sandbox UI | `http://127.0.0.1:18789/#token=6e8df882...` (DGX Spark local only) |
 
+---
+Stack composition
+Total Containers: 37
+├── Application Layer:      3
+├── AI & Agent Services:    5
+├── Identity & Security:    3
+├── Databases:              6
+├── Message Streaming:      3
+├── Object Storage:         1
+├── Observability:         13
+└── Infrastructure:         3
 ---
 
 ## Build Sessions
