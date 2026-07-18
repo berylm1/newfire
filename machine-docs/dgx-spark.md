@@ -145,3 +145,12 @@ Plus cached HuggingFace downloads under `/home/newwave-dgx/hf-cache` and
 - [ ] Rotate any LLM provider keys found in `litellm-config*.yaml`.
 - [ ] Verify `node_exporter :9100` is scraped by the monitoring stack on `newwaveclaw`.
 - [ ] Read companion doc `machine-docs/newwaveclaw.md` (control plane lives there).
+
+## 11. Related Documentation
+
+- **[infrastructure.md](infrastructure.md)** — full cross-cutting reference
+  (Cloudflare tunnel, Tailscale, Docker stacks, AI agents, all projects). This
+  node's `qwen-spark` vLLM is the upstream for the `litellm` proxy and
+  `api.newfire.app` gateway described there.
+- **[newwaveclaw.md](newwaveclaw.md)** — the control node that fronts this
+  GPU's models through Cloudflare Tunnel.

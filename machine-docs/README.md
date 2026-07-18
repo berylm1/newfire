@@ -9,6 +9,12 @@ accessed, and what a new operator needs to know to take over.
 | `newwaveclaw` | Primary control / orchestration node (x86_64, Ubuntu 24.04) | [newwaveclaw.md](newwaveclaw.md) |
 | `spark-a439` (DGX Spark) | GPU inference node (NVIDIA GB10, aarch64, Ubuntu 24.04) | [dgx-spark.md](dgx-spark.md) |
 
+### Cross-cutting reference
+
+| Topic | Docs |
+| --- | --- |
+| Cloudflare tunnel, Tailscale, Docker, AI agents, all projects | [infrastructure.md](infrastructure.md) |
+
 ## How to use these docs
 
 - These files are **living documentation**. Update them whenever a service is

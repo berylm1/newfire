@@ -159,3 +159,12 @@
 - [ ] Fix the two restart-looping containers (`newfire-app`, `nss-alertmanager`).
 - [ ] Confirm `cloudflared` tunnel still points at the right upstreams.
 - [ ] Free disk space (prune images, offload `backups/`).
+
+## 10. Related Documentation
+
+- **[infrastructure.md](infrastructure.md)** — full cross-cutting reference:
+  Cloudflare tunnel ingress table, Tailscale device inventory, Docker compose
+  stacks, AI agent runtimes (OpenCode/OpenHands/OpenClaw/LiteLLM/vLLM), and
+  every project (NewFire, Healthpoint, Lanai, Paperclip, FarmConnect, n8n, Zrok).
+- **[dgx-spark.md](dgx-spark.md)** — the GPU inference node that serves the
+  models referenced by the LiteLLM proxy and `api.newfire.app`.
