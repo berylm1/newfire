@@ -228,6 +228,43 @@ server is **up** — it simply has no root route; a down server returns `000`/`f
 >   (`*.newfire.app`); confirm WAF/access rules are in place.
 > - OpenClaw microservices and DeepAgents are `127.0.0.1`-bound (localhost only) — safer.
 
+### 4.6 Exposure & hardening assessment (control node)
+
+**Perimeter reality (verified):** UFW is **active** with `Default: deny (incoming)`.
+Only these are explicitly allowed IN: `22/tcp` (SSH, Anywhere), `tailscale0`
+(Anywhere), `100.88.112.5` (DGX), and select Docker/`100.64.0.0/10` ranges.
+Therefore the `0.0.0.0` agent binds are **not** directly internet-exposed — the
+real public perimeter is the **Cloudflare Tunnel**, which proxies the
+`*.newfire.app` hostnames (§1.2).
+
+**Host firewall gaps that DO allow direct inbound (past the tunnel):**
+| Port | UFW rule | Reachable | Service |
+| --- | --- | --- | --- |
+| `18789` | ALLOW Anywhere | internet | WebDAV (`files.newfire.app`) |
+| `9080` | ALLOW Anywhere | internet | APISIX HTTP (`api.newfire.app`) |
+| `9443` | ALLOW Anywhere | internet | APISIX HTTPS |
+| `8080` | ALLOW Anywhere | internet | (misc) |
+
+**Auth status per agent (probed):**
+| Endpoint | Auth | Result |
+| --- | --- | --- |
+| OpenHands agent API `:18000` | **required** | `GET /` 200 (health), `POST /api/conversations` no-key → **401** ✅ |
+| OpenHands app `:8000` | none observed | `GET /` 200 (open) ⚠️ |
+| OpenCode `:4096` | none observed | `GET /` 200 (open) ⚠️ |
+| OpenClaw `:8101`–`:8106` | localhost-only | not tunneled ✅ |
+| DeepAgents `:8081` | localhost-only | not tunneled ✅ |
+
+**Recommended tightening (not yet applied — documentation only):**
+1. **Cloudflare Access** in front of `app/agent/openhands/opencode.newfire.app`
+   so only authenticated identities reach the agent UIs/APIs (no app changes).
+2. **Remove or scope the `Anywhere` UFW allows** for `18789`, `9080`, `9443`,
+   `8080` — restrict to Tailscale/`100.64.0.0/10` or the tunnel origin.
+3. **Bind OpenHands `:8000` and OpenCode `:4096` to `127.0.0.1`** (the tunnel
+   container already reaches localhost) to kill LAN/Tailscale exposure.
+4. **Add app-level auth** (Keycloak/API key) in front of OpenHands app + OpenCode.
+5. **Verify Cloudflare WAF** rules exist on the zone; enable bot/rate-limit on
+   agent hostnames.
+
 ---
 
 ## 5. Projects & Services
