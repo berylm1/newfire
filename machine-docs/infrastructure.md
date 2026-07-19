@@ -310,6 +310,29 @@ from `app-net`** (the network agent-canvas actually sits on):
 > succeed, docker.sock works, and all state stores resolve — concurrent + overnight
 > runs should no longer hit the ~49 s stale-run timeout.
 
+**How to drive a coding task (important — the raw conversation API does NOT execute tools):**
+The `agent-canvas` fork (lanai) delegates actual tool execution (terminal,
+file_editor) to the bundled **Automations Service** (`/api/automation`, port
+18001). The plain `POST /api/conversations` path yields an agent that can only
+`Think`/`Finish` (no registered tools) and finishes after one step. To run a
+real task:
+1. Auth: read the persisted key from the container
+   `/home/openhands/.openhands/agent-canvas/api-key.txt` and send it as the
+   `X-Session-API-Key` header on `:8001` (nginx). (Not `X-API-Key`.)
+2. Create + dispatch an automation:
+   `POST /api/automation/v1/preset/prompt` with body
+   `{name, prompt, model:"qwen", timeout:14400,
+     repos:[{url:"https://github.com/owner/repo.git", ref:"main", provider:"github"}],
+     trigger:{type:"event", source:"github", on:["*"]}}`
+   → returns `id`; then `POST /api/automation/v1/{id}/dispatch` → returns a `run`
+   (status `PENDING` → `RUNNING`). The agent clones the repo into
+   `/home/openhands/.openhands/workspaces/automation-runs/{run_id}/` and executes
+   with terminal + file_editor. Poll `GET /api/automation/v1/{id}/runs`.
+3. The LLM is `openai/qwen` → DGX Spark `qwen-spark` on `:8001/v1`.
+4. Do NOT set `settings.json` `agent_settings.tools` to `["TerminalTool","FileEditorTool"]`
+   — that string form breaks `PersistedSettings` load (expects dicts). Leave it `[]`;
+   the Automations Service provisions tools itself.
+
 ### 4.4 Agent provisioning
 
 `newfire-provisioner.service` (systemd **user** unit on control node) runs the
