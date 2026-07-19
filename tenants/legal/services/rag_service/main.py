@@ -14,6 +14,7 @@ service needs to change.
 
 import json
 import os
+import sys
 import urllib.request
 import uuid
 
@@ -22,8 +23,13 @@ from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_EMBEDDING_BASE_URL", "http://100.88.112.5:11434")
-EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
+# Ensure tenant root is on path so shared/ imports resolve
+_tenant_root = str(__import__("pathlib").Path(__file__).resolve().parent.parent.parent)
+if _tenant_root not in sys.path:
+    sys.path.insert(0, _tenant_root)
+
+from shared.llm_config import EMBEDDING_BASE_URL, EMBEDDING_MODEL
+
 EMBEDDING_SIZE = 768
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "http://127.0.0.1:6333")
@@ -42,7 +48,7 @@ if not qdrant.collection_exists(COLLECTION_NAME):
 def embed(text: str) -> list[float]:
     payload = {"model": EMBEDDING_MODEL, "prompt": text}
     req = urllib.request.Request(
-        f"{OLLAMA_BASE_URL}/api/embeddings",
+        f"{EMBEDDING_BASE_URL}/api/embeddings",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"},
         method="POST",

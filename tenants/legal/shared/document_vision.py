@@ -12,8 +12,7 @@ import json
 import os
 import urllib.request
 
-DEFAULT_BASE_URL = "http://100.88.112.5:11434"
-DEFAULT_VISION_MODEL = "qwen2.5vl:7b"
+from .llm_config import VISION_BASE_URL, VISION_MODEL
 
 EXTRACTION_PROMPT = (
     "Extract all the text from this document image, preserving its structure "
@@ -26,8 +25,8 @@ def extract_document_text(image_path: str) -> str:
     """Run a scanned/photographed document through the vision model and
     return the extracted text, ready to feed into a text-based agent the
     same way a typed email or pasted brief would be."""
-    base_url = os.environ.get("OLLAMA_VISION_BASE_URL", DEFAULT_BASE_URL)
-    model = os.environ.get("OLLAMA_VISION_MODEL", DEFAULT_VISION_MODEL)
+    base_url = VISION_BASE_URL
+    model = VISION_MODEL
 
     with open(image_path, "rb") as f:
         image_b64 = base64.b64encode(f.read()).decode("ascii")

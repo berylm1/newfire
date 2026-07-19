@@ -14,8 +14,7 @@ from approval_service.client import create_approval
 from conflicts_service.client import check_conflicts
 from memory_service.client import get_client_memory
 
-DEFAULT_MODEL = "gemma4-26b-64k"
-DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
+from shared.llm_config import LLM_BASE_URL, LLM_MODEL, require_api_key
 
 CHECKPOINT_DB_PATH = os.path.join(os.path.dirname(__file__), "checkpoints.db")
 
@@ -39,10 +38,7 @@ class WorkflowState(TypedDict, total=False):
 
 
 def _llm() -> ChatOpenAI:
-    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
-    api_key = os.environ.get("LLM_API_KEY", "ollama")
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    return ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+    return ChatOpenAI(api_key=require_api_key(), base_url=LLM_BASE_URL, model=LLM_MODEL)
 
 
 def input_node(state: WorkflowState) -> WorkflowState:

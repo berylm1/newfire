@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from datetime import datetime, timezone
 from typing import TypedDict
@@ -7,13 +8,16 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
+# Ensure tenant root is on path so shared/ imports resolve
+_tenant_root = str(__import__("pathlib").Path(__file__).resolve().parent.parent)
+if _tenant_root not in sys.path:
+    sys.path.insert(0, _tenant_root)
+
 from activity_log_service.client import get_todays_events
 from case_service.client import list_cases
 from notify_service.client import send_notification
+from shared.llm_config import LLM_BASE_URL, LLM_MODEL, require_api_key
 from tenant_config import get_attorney_contact
-
-DEFAULT_MODEL = "gemma4-26b-64k"
-DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
 
 # How close a key_date has to be before it's worth surfacing at all. Real
 # urgency-tiering (a filing deadline behaves differently than a priority
@@ -92,10 +96,7 @@ def _docket_items_from_cases(cases: list[dict]) -> list[dict]:
 
 
 def _llm() -> ChatOpenAI:
-    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
-    api_key = os.environ.get("LLM_API_KEY", "ollama")
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    return ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+    return ChatOpenAI(api_key=require_api_key(), base_url=LLM_BASE_URL, model=LLM_MODEL)
 
 
 def input_node(state: WorkflowState) -> WorkflowState:
@@ -127,7 +128,7 @@ def draft_briefing_node(state: WorkflowState) -> WorkflowState:
     usage = response.usage_metadata or {}
 
     return {
-        "model": os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+        "model": LLM_MODEL,
         "output": str(response.content),
         "latency_ms": latency_ms,
         "input_tokens": int(usage.get("input_tokens", 0)),

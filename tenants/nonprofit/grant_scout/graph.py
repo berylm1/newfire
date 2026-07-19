@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from typing import TypedDict
 
@@ -10,8 +11,13 @@ from langgraph.types import interrupt
 from grants_gov import search_opportunities
 from fit_scoring import score_opportunities
 
-DEFAULT_MODEL = "gemma4-26b-64k"
-DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
+# Ensure tenant root is on path so shared/ imports resolve
+_tenant_root = str(__import__("pathlib").Path(__file__).resolve().parent.parent)
+if _tenant_root not in sys.path:
+    sys.path.insert(0, _tenant_root)
+
+from shared.llm_config import LLM_BASE_URL, LLM_MODEL, require_api_key
+
 TOP_N = 6
 
 
@@ -30,10 +36,7 @@ class WorkflowState(TypedDict, total=False):
 
 
 def _llm() -> ChatOpenAI:
-    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
-    api_key = os.environ.get("LLM_API_KEY", "ollama")
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    return ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+    return ChatOpenAI(api_key=require_api_key(), base_url=LLM_BASE_URL, model=LLM_MODEL)
 
 
 def input_node(state: WorkflowState) -> WorkflowState:
@@ -85,7 +88,7 @@ def draft_digest_node(state: WorkflowState) -> WorkflowState:
     usage = response.usage_metadata or {}
 
     return {
-        "model": os.environ.get("LLM_MODEL", DEFAULT_MODEL),
+        "model": LLM_MODEL,
         "draft": str(response.content),
         "latency_ms": latency_ms,
         "input_tokens": int(usage.get("input_tokens", 0)),

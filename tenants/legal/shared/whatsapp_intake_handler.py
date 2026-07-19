@@ -24,20 +24,15 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))
 
+from .llm_config import LLM_BASE_URL, LLM_MODEL, require_api_key
 from activity_log_service.client import log_event
 from conflicts_service.client import check_conflicts
-
-DEFAULT_MODEL = "glm4:9b"
-DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
 
 
 def extract_party_names(document_text: str) -> list[str]:
     from langchain_openai import ChatOpenAI
 
-    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
-    api_key = os.environ.get("LLM_API_KEY", "ollama")
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+    llm = ChatOpenAI(api_key=require_api_key(), base_url=LLM_BASE_URL, model=LLM_MODEL)
 
     prompt = (
         "Extract every person or company named anywhere in this document — "

@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sqlite3
+import sys
 import time
 from typing import TypedDict
 
@@ -13,8 +14,12 @@ from langgraph.types import interrupt
 from approval_service.client import create_approval
 from courtlistener import verify_citation
 
-DEFAULT_MODEL = "gemma4-26b-64k"
-DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
+# Ensure tenant root is on path so shared/ imports resolve
+_tenant_root = str(__import__("pathlib").Path(__file__).resolve().parent.parent)
+if _tenant_root not in sys.path:
+    sys.path.insert(0, _tenant_root)
+
+from shared.llm_config import LLM_BASE_URL, LLM_MODEL, require_api_key
 
 CHECKPOINT_DB_PATH = os.path.join(os.path.dirname(__file__), "checkpoints.db")
 
@@ -36,10 +41,7 @@ class WorkflowState(TypedDict, total=False):
 
 
 def _llm() -> ChatOpenAI:
-    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
-    api_key = os.environ.get("LLM_API_KEY", "ollama")
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    return ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
+    return ChatOpenAI(api_key=require_api_key(), base_url=LLM_BASE_URL, model=LLM_MODEL)
 
 
 def input_node(state: WorkflowState) -> WorkflowState:
