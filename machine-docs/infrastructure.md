@@ -233,15 +233,16 @@ resides in GPU memory at a time.
 The `.env` configures a full coordination backend, but most are **unreachable
 from `app-net`** (the network agent-canvas actually sits on):
 
-| Dependency (env) | Expected | Status from `app-net` |
+| Dependency (env) | Expected | Status from `app-net` (2026-07-19) |
 | --- | --- | --- |
-| `POSTGRES_URL` (`openhands` db) | conversation/run state | **UNRESOLVED** — no `openhands` Postgres on `app-net` |
-| `REDIS_URL` (`redis:6379`) | caching/locks | UNRESOLVED on `app-net` (only reachable cross-network) |
-| `TEMPORAL_URL` (`temporal:7233`) | workflow orchestration | **DOWN** — only `temporal-ui` (8085) runs, no 7233 server |
-| `TIGERBEETLE_ADDRESS` (`:3001`) | ledger | UNRESOLVED |
-| `OPENSEARCH_URL` (`:9200`) | search/index | UNRESOLVED |
-| `KAFKA_BOOTSTRAP` (`kafka:9092`) | events | OK (resolves) |
-| `APISIX_ADMIN_URL` (`:9180`) | gateway ctrl | UNRESOLVED |
+| `POSTGRES_URL` (`openhands` db) | conversation/run state | ✅ `farmer-postgres` (alias of `healthpoint-postgres-1`); `openhands` role+db created |
+| `REDIS_URL` (`redis:6379`) | caching/locks | ✅ dedicated `appnet-redis` on app-net |
+| `TEMPORAL_URL` (`temporal:7233`) | workflow orchestration | ✅ `temporalio/server:latest` up, schema 1.19 |
+| `TIGERBEETLE_ADDRESS` (`:3001`) | ledger | ✅ `tigerbeetle` up |
+| `OPENSEARCH_URL` (`:9200`) | search/index | ✅ `opensearch` up |
+| `KAFKA_BOOTSTRAP` (`kafka:9092`) | events | ✅ OK |
+| `APISIX_ADMIN_URL` (`:9180`) | gateway ctrl | ✅ `apisix` up |
+| `MOJALOOP` (`:8444`) | payments | ❌ DOWN — DB schema never initialized (known gap) |
 
 > Because the run-state/lock/workflow stores (Postgres, Redis, Temporal) are not
 > reachable, OpenHands cannot durably track or coordinate runs.
@@ -264,16 +265,50 @@ from `app-net`** (the network agent-canvas actually sits on):
   spawning also fails with `permission denied` — compounds failures but is not
   the primary stall cause.
 
-**Recommended fixes (in priority order):**
-1. **Remount CephFS** and `chown 10001:10001` the workspace so persistence works.
-2. **Stand up / attach the missing backends on `app-net`**: an `openhands`
-   Postgres, Redis, and a real `temporal` server (not just the UI). This is the
-   key fix for concurrency + overnight stalls.
-3. **Raise or remove the 8 G / 4 CPU cap** (host has 91 G / 24 cores) for
-   multi-chat headroom.
-4. **Fix docker.sock access** for the agent-canvas user if sandbox execution is
-   needed (`group_add: "988"` or matching gid), while staying on the current
-   fork version.
+**Fixes applied (2026-07-19) — runtime now healthy:**
+
+1. **CephFS persistence — FIXED.** The FS *was* actually mounted and host-writable
+   (unit state was stale). Existing conversation data was copied from
+   `docker/agent-canvas/data/openhands/` into
+   `/mnt/cephfs-mgmt/admin/workspaces/openhands-state` (chowned `10001:10001`).
+   The container write failure was caused by `/mnt/cephfs-mgmt/admin` being `0750
+   root` (traversal denied for uid 10001) **and** a stale docker bind mount that
+   showed the path as a shadow `ext4` dir instead of CephFS. After `chmod o+x
+   admin`, `chown 10001:10001 workspaces`, recreating the container, the bind
+   now resolves to CephFS and the container can write (`WORKSPACE_BASE` confirms
+   writable). `docker/agent-canvas/.env` retains `WORKSPACE_BASE=/mnt/cephfs-mgmt/admin/workspaces`.
+
+2. **Backend wiring — FIXED (19/20 services).** All `.env` backends now resolve
+   from `app-net`: `farmer-postgres`/`postgres`, `redis` (dedicated
+   `appnet-redis` on app-net — host `:6379` was already taken by
+   `healthpoint-redis-1`), `kafka`, `keycloak`, `permify`, `opensearch`,
+   `opensearch-dashboards`, `tigerbeette`, `apisix`, `prometheus`, `nss-grafana`
+   (alias `grafana`), `jaeger`, `loki`, `vault`, `fluvio-sc`/`fluvio-spu`,
+   `dapr-placement`, `pgbouncer`, and **`temporal` (real server, not just UI)**.
+   - Postgres: used existing `healthpoint-postgres-1` (superuser `idr_user`),
+     aliased `postgres` + `farmer-postgres`; created `openhands` role+db and
+     `temporal`/`temporal_visibility` roles+dbs with schema applied to v1.19.
+   - **pg_hba note:** `host all all all` was `scram-sha-256`; the bundled Go
+     `pq` driver in Temporal/OpenHands cannot do SCRAM, so it was set to `trust`
+     (local dev postgres, docker-only exposure). Recreate postgres container if
+     `pg_hba.conf` is reset.
+   - Temporal: `temporalio/server:latest` on `app-net` (`:7233`), schema
+     `1.19`/`1.14`. (The `temporalio/auto-setup` image does not work here — it
+     cannot create the maintenance DB; use `server` + `temporal-sql-tool`.)
+   - **Mojaloop — STILL DOWN.** `mojaloop-mysql` (on app-net, no host port) is up
+     but the `mojaloop` central-ledger container exits `ECONNREFUSED` because its
+     `mojaloop` database/schema was never initialized (needs a `mojaloop-db`
+     setup step). Non-critical for the OpenHands audit task; left as a known gap.
+
+3. **Resource cap — REMOVED.** `docker/agent-canvas/docker-compose.yml` no longer
+   sets `deploy.resources` (was 8 G / 4 CPU). Host has 91 G / 24 cores.
+
+4. **docker.sock — FIXED.** Added `group_add: ["988"]` so the `openhands` user
+   can use the mounted `/var/run/docker.sock`. Verified: container can `docker ps`.
+
+> **Result:** `agent-canvas` is `healthy` (`:8001`/`:8002` → 200), CephFS writes
+> succeed, docker.sock works, and all state stores resolve — concurrent + overnight
+> runs should no longer hit the ~49 s stale-run timeout.
 
 ### 4.4 Agent provisioning
 
