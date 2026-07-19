@@ -10,10 +10,26 @@ cases.json
 sent_log.json
 attorney_contacts.json
 
+# Python build/runtime artifacts
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
 # Secrets / credentials
 **/.ssh/**
 **/.env
 **/.env.*
+!**.env.example
 **/.git-credentials
 **/*credentials*
 **/*.pem
@@ -38,3 +54,8 @@ attorney_contacts.json
 .DS_Store
 *.swp
 *.tmp
+
+# IDE
+.idea/
+.vscode/
+*.iml
