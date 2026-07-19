@@ -207,6 +207,27 @@ resides in GPU memory at a time.
 "NewFire tenant provisioning daemon" — keeps agent tenants wired up. Check with
 `systemctl --user status newfire-provisioner`.
 
+### 4.5 Agent harness inventory & health (control node)
+
+Live probe of every agent harness on `newwaveclaw` (HTTP `404` on `/` means the
+server is **up** — it simply has no root route; a down server returns `000`/`fail`).
+
+| Harness | Status | Access / Ports | Notes |
+| --- | --- | --- | --- |
+| **OpenCode** (this agent) | ✅ UP | `:4096` → 200, `:3002` → 302 | Gateway + container runtime; `:4096` is what `opencode.newfire.app` tunnels to |
+| **OpenHands** (agent-canvas) | ✅ UP | app `:8000` → 200, canvas `:8001` → 200, agent API `:18000` → `{"status":"ok"}` | 3 compose variants in `docker/openhands*`, `openhands/openhands-shim`, `openhands/openhands-proxy`, `openhands/openhands-microagents` |
+| **OpenClaw** | ✅ UP | CLI `2026.4.23`; microservices `127.0.0.1:8101`–`:8106` (all respond) | Fleet of uvicorn services (activity_log `:8101`, conflicts `:8102`, approvals `:8104`, etc.); localhost-only, not tunneled. Data in `openclaw/openclaw-data/` |
+| **DeepAgents** | ✅ UP | `:8081` → 404 (server up) | `deepagents/deepagents-chat` chat app (`app.py`/`run.sh`) |
+| **Hermes** | ✅ UP | gateway process (pid `181565`, `Ssl`) | v0.18.2; `transport: auto` (no fixed TCP port — local process gateway). State in `~/.hermes/` (`state.db` actively written, `kanban.db`, cron ticker). CLI: `~/.local/bin/hermes` |
+| **NewFire NSS** (control/portal/runner) | ⚠️ Not running | compose only in `~/newfire/newfire-nss-*` | No containers present at snapshot — provisioned but stopped. DGX also has `newfire-nss-router` + `newfire-nss-runner` |
+
+> **Security flags (verify on handover):**
+> - OpenHands agent API on `:18000` and app on `:8000` bind `0.0.0.0` with **no auth**
+>   in observed config — anyone reaching them can drive agents. Tighten or front with auth.
+> - OpenCode `:4096` and OpenHands `:8001` are exposed via the Cloudflare Tunnel
+>   (`*.newfire.app`); confirm WAF/access rules are in place.
+> - OpenClaw microservices and DeepAgents are `127.0.0.1`-bound (localhost only) — safer.
+
 ---
 
 ## 5. Projects & Services
