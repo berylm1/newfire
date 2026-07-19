@@ -267,6 +267,68 @@ real public perimeter is the **Cloudflare Tunnel**, which proxies the
 
 ---
 
+## 8. Router & LAN Overview
+
+### 8.1 Router
+
+| Property | Value |
+| --- | --- |
+| IP | `192.168.1.1` (default gateway for all LAN hosts) |
+| Vendor | **GL.iNet** (GL Technologies, Hong Kong) — `gl-ui` Admin Panel |
+| MAC | `94:83:c4:a0:26:39` |
+| Admin | HTTP `:80` → 200; HTTPS `:443` → no response; API `/cgi-bin/api/*` → **403/302 (auth required)** |
+| LAN subnet | `192.168.1.0/24` |
+
+> The router's authoritative DHCP lease table is behind the GL.iNet login
+> (admin API returns 403 without session). The device inventory below is built
+> from this host's **ARP neighbor table** + Tailscale cross-reference, so it
+> reflects devices this machine has actually communicated with — not the full
+> lease list. To get the complete list, log into the GL.iNet Admin Panel.
+
+### 8.2 Expected vs actual devices
+
+**Design intent:** only router + `newwaveclaw` (Minisforum) + `spark-a439` (DGX Spark).
+
+| Role | LAN IP | MAC | Confirmed by |
+| --- | --- | --- | --- |
+| Router (GL.iNet) | `192.168.1.1` | `94:83:c4:a0:26:39` | gateway + OUI |
+| **newwaveclaw** (Minisforum, you) | `192.168.1.150` / `.157` | `38:05:25:30:1e:c6` | local interface |
+| **spark-a439** (DGX Spark) | `192.168.1.158` | `4c:bb:47:2a:a4:39` | DGX interface + TS direct peer |
+
+### 8.3 Other devices observed on the LAN (NOT part of the 3-host design)
+
+These appeared in ARP — indicating the LAN is a **shared/home ISP network**, not
+an isolated lab segment:
+
+| LAN IP | MAC | Vendor (OUI) | Likely type |
+| --- | --- | --- | --- |
+| `192.168.1.109` | `44:07:0b:ad:26:48` | Google | Chromecast / Nest |
+| `192.168.1.172` | `3c:df:a9:c2:d5:c5` | ARRIS | ISP gateway / mesh node |
+| `192.168.1.201` | `b0:2a:43:0f:05:fc` | Google | Pixel phone / Nest |
+| `192.168.1.212` | `50:95:51:d6:6f:63` | ARRIS | ISP device |
+| `192.168.1.221` | `1c:f2:9a:73:8a:6a` | Google | Chromecast / speaker |
+| `192.168.1.225` | `3c:df:a9:c1:33:c1` | Commscope | Cable modem / AP |
+| `192.168.1.226` | `6c:ca:08:e5:d5:45` | ARRIS | ISP device |
+| `192.168.1.240` | `1c:53:f9:35:2d:58` | Google | Chromecast / speaker |
+| `192.168.1.245` | `4c:57:39:86:d7:bc` | unknown OUI | unidentified |
+
+> **~10 extra devices** beyond the intended 3. This means the AI boxes share a
+> broadcast domain with unrelated consumer devices — a separation/security gap.
+
+### 8.4 Recommendations (isolate the lab network)
+
+1. **Put newwaveclaw + DGX on a dedicated VLAN / guest-isolated segment** on the
+   GL.iNet router, separate from the consumer devices.
+2. **Enable client isolation** or a private subnet for the two AI hosts.
+3. **Restrict LAN exposure:** since UFW already denies inbound by default, the
+   risk is mainly broadcast/scan surface + the `Anywhere` UFW allows (§4.6).
+4. **Log into the GL.iNet Admin Panel** to get the full DHCP lease list and
+   confirm no unexpected host has a static lease in the `.150–.158` range.
+5. Optionally **move the AI hosts to Tailscale-only / static IPs** outside the
+   DHCP pool to prevent IP drift.
+
+---
+
 ## 5. Projects & Services
 
 ### 5.1 NewFire platform (`~/newfire/`)

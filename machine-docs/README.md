@@ -13,7 +13,7 @@ accessed, and what a new operator needs to know to take over.
 
 | Topic | Docs |
 | --- | --- |
-| Cloudflare tunnel, Tailscale, Docker, AI agents, all projects | [infrastructure.md](infrastructure.md) |
+| Cloudflare tunnel, Tailscale, Docker, AI agents, all projects, router/LAN | [infrastructure.md](infrastructure.md) |
 
 ## How to use these docs
 
