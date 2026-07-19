@@ -201,6 +201,80 @@ resides in GPU memory at a time.
 | **NewFire NSS** | control + DGX | `newfire-nss-control` (portal/nginx), `newfire-nss-portal`, `newfire-nss-runner`; DGX `newfire-nss-router` + `newfire-nss-runner` | internal |
 | **DeepAgents** | control | `deepagents/deepagents-chat` | internal |
 
+### 4.3.1 OpenHands (agent-canvas) — configuration & observed problems
+
+> **Live diagnostic (snapshot 2026-07-19).** The running deployment is the
+> third-party fork `ghcr.io/openhands/agent-canvas:latest` (compose
+> `docker/agent-canvas/`), fronted by `agent-canvas-nginx` on `:8001`
+> (`openhands.newfire.app`). It is **not** the canonical `openhands:latest`
+> image, so env-var names may differ from upstream docs. Pinning the runtime to
+> an old version (e.g. `0.44`) is **not** recommended — the fork tracks current
+> OpenHands (v1.1 era); downgrading would degrade model quality.
+
+**LLM wiring (this part is CORRECT):**
+- `LLM_BASE_URL=http://100.88.112.5:8001/v1` → DGX Spark `qwen-spark` vLLM.
+- Verified reachable **from inside the container** (`curl … :8001/v1/models` → 200,
+  returns model `qwen` = `Qwen/Qwen3.6-27B-FP8`). The LLM is **not** the cause
+  of failures.
+
+**Persistent storage (intentional design, currently BROKEN):**
+- `WORKSPACE_BASE` / `WORKSPACE_MOUNT_PATH` = `/mnt/cephfs-mgmt/admin/workspaces`
+  — CephFS is meant to be the permanent store tying OpenHands conversations to
+  local disk so data survives container restarts.
+- **Mount unit `mnt-cephfs-mgmt.mount` is FAILED** (`exit-code` since 2026-07-11).
+  `microceph` itself is healthy (mds/mgr/mon/osd up), but the FS is not presented
+  to the host. `/mnt/cephfs-mgmt` is therefore a stale local dir.
+- Inside the container the mount exists but is **not writable** (owned by `root`,
+  container runs as `openhands` uid 10001 → `Permission denied`). → **conversation
+  / workspace data is NOT persisting** (data-loss risk). Must remount CephFS and
+  fix ownership to uid 10001.
+
+**Backend dependency gap (root cause of stalls / concurrent-run failures):**
+The `.env` configures a full coordination backend, but most are **unreachable
+from `app-net`** (the network agent-canvas actually sits on):
+
+| Dependency (env) | Expected | Status from `app-net` |
+| --- | --- | --- |
+| `POSTGRES_URL` (`openhands` db) | conversation/run state | **UNRESOLVED** — no `openhands` Postgres on `app-net` |
+| `REDIS_URL` (`redis:6379`) | caching/locks | UNRESOLVED on `app-net` (only reachable cross-network) |
+| `TEMPORAL_URL` (`temporal:7233`) | workflow orchestration | **DOWN** — only `temporal-ui` (8085) runs, no 7233 server |
+| `TIGERBEETLE_ADDRESS` (`:3001`) | ledger | UNRESOLVED |
+| `OPENSEARCH_URL` (`:9200`) | search/index | UNRESOLVED |
+| `KAFKA_BOOTSTRAP` (`kafka:9092`) | events | OK (resolves) |
+| `APISIX_ADMIN_URL` (`:9180`) | gateway ctrl | UNRESOLVED |
+
+> Because the run-state/lock/workflow stores (Postgres, Redis, Temporal) are not
+> reachable, OpenHands cannot durably track or coordinate runs.
+
+**Observed failure pattern (matches user symptoms):**
+- Every run is assigned a `timeout_at`, and **~49 s later** is declared
+  `Processing stale run … Verified run failed (exit_code=1)`. This repeats
+  continuously (dozens of run_ids/hour; 36 distinct in a 3 h window).
+- Symptom "stalls with 2+ chats": concurrent runs cannot be coordinated without
+  the missing state stores → collisions / silent timeouts.
+- Symptom "stalls when left overnight": the server-side stale-run timeout fires
+  while the client keeps polling `/api/conversations/search`; the run is killed
+  server-side regardless of client liveness.
+
+**Also present (secondary):**
+- `agent-canvas` is capped at **8 G RAM / 4 CPU** by compose `deploy.resources`
+  (already ~42 % mem idle) — a concurrency ceiling independent of the above.
+- The `docker.sock` mount is present but the container user (`openhands`, gid
+  10001) is **not** in the host `docker` group (gid 988), so sandbox-runtime
+  spawning also fails with `permission denied` — compounds failures but is not
+  the primary stall cause.
+
+**Recommended fixes (in priority order):**
+1. **Remount CephFS** and `chown 10001:10001` the workspace so persistence works.
+2. **Stand up / attach the missing backends on `app-net`**: an `openhands`
+   Postgres, Redis, and a real `temporal` server (not just the UI). This is the
+   key fix for concurrency + overnight stalls.
+3. **Raise or remove the 8 G / 4 CPU cap** (host has 91 G / 24 cores) for
+   multi-chat headroom.
+4. **Fix docker.sock access** for the agent-canvas user if sandbox execution is
+   needed (`group_add: "988"` or matching gid), while staying on the current
+   fork version.
+
 ### 4.4 Agent provisioning
 
 `newfire-provisioner.service` (systemd **user** unit on control node) runs the
