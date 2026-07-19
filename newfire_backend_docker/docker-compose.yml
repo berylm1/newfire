@@ -3,24 +3,26 @@ name: newfire-backend
 services:
   backend:
     build:
-      context: /home/newwaveclaw/newfire-backend
-      dockerfile: /home/newwaveclaw/newfire-backend-docker/Dockerfile
+      context: ../newfire-backend
+      dockerfile: ../newfire-backend-docker/Dockerfile
     image: newfire-backend:1.6.0
     container_name: newfire-backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${DB_NAME:-newfire}
       OPENROUTER_KEY: ${OPENROUTER_KEY}
-      OPENCLAW_URL: ${OPENCLAW_URL:-http://172.17.0.1:18789}
+      OPENCLAW_URL: ${OPENCLAW_URL:-http://host.docker.internal:18789}
       OPENCLAW_TOKEN: ${OPENCLAW_TOKEN}
-      APISIX_ADMIN_URL: ${APISIX_ADMIN_URL:-http://172.17.0.1:9180}
+      APISIX_ADMIN_URL: ${APISIX_ADMIN_URL:-http://host.docker.internal:9180}
       APISIX_ADMIN_KEY: ${APISIX_ADMIN_KEY}
-      OLLAMA_URL: ${OLLAMA_URL:-http://100.88.112.5:11434}
-      QDRANT_URL: ${QDRANT_URL:-http://100.88.112.5:6333}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
       QDRANT_API_KEY: ${QDRANT_API_KEY}
       EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
       RAG_TOP_K: ${RAG_TOP_K:-3}
@@ -38,6 +40,12 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3200/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - newfire_backend_net
       - newfire_shared

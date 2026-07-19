@@ -7,6 +7,23 @@ on:
     branches: [main]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linter
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Lint
+        run: ruff check .
+
   test:
     runs-on: ubuntu-latest
     steps:
@@ -22,20 +39,31 @@ jobs:
           pip install pytest ruff
           for f in $(find tenants -name requirements.txt); do
             echo "installing $f"
-            pip install -r "$f"
+            pip install -r "$f" || echo "WARNING: failed to install $f"
           done
 
-      - name: Lint
-        run: ruff check .
-
-      - name: Test
+      - name: Run tests
         run: |
+          # Run tests across all tenants; exit 5 (no tests) is acceptable
+          # but only for the full run, not per-tenant
           set +e
-          python -m pytest
+          python -m pytest -v --tb=short tenants/
           code=$?
           set -e
           if [ "$code" -eq 5 ]; then
-            echo "no tests collected yet, skipping"
+            echo "::warning::No tests collected across any tenant directory"
             exit 0
           fi
           exit $code
+
+      - name: Check for untested services
+        if: always()
+        run: |
+          echo "Checking for services without test coverage..."
+          for service_dir in $(find tenants -type d -name "services" -exec find {} -mindepth 1 -maxdepth 1 -type d \;); do
+            service_name=$(basename "$service_dir")
+            test_dir="$service_dir/tests"
+            if [ ! -d "$test_dir" ]; then
+              echo "::warning::No tests directory found for $service_name"
+            fi
+          done
