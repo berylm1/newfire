@@ -265,7 +265,7 @@ from `app-net`** (the network agent-canvas actually sits on):
   spawning also fails with `permission denied` — compounds failures but is not
   the primary stall cause.
 
-**Fixes applied (2026-07-19) — runtime now healthy:**
+**Fixes applied (2026-07-19, updated 2026-07-20) — runtime now healthy:**
 
 1. **CephFS persistence — FIXED.** The FS *was* actually mounted and host-writable
    (unit state was stale). Existing conversation data was copied from
@@ -332,6 +332,47 @@ real task:
 4. Do NOT set `settings.json` `agent_settings.tools` to `["TerminalTool","FileEditorTool"]`
    — that string form breaks `PersistedSettings` load (expects dicts). Leave it `[]`;
    the Automations Service provisions tools itself.
+
+**Concurrent + long-running task bugs (diagnosed 2026-07-20):**
+
+Three bugs block concurrent/overnight automation runs. All confirmed via
+live testing (4 simultaneous payment-switch simulations, all killed at600s).
+
+| Bug | Root cause | Community issue | Status |
+| --- | --- | --- | --- |
+| **`max_run_duration` ceiling =600s** | `config.py` default `max_run_duration: int =600`; `dispatcher.py` applies `min(automation.timeout, max_run_duration)` so `timeout:14400` is silently capped. | `OpenHands/OpenHands#14936` (open) | **FIXED**: `AUTOMATION_MAX_RUN_DURATION=14400` added to `.env` (2026-07-20). |
+| **`max_concurrent_runs` bypassed by async** | `EventService.run()` prefers `conversation.arun()` (native async) which bypasses `ThreadPoolExecutor`. `OH_MAX_CONCURRENT_RUNS=N` only limits sync. | `OpenHands/software-agent-sdk#4063` (open) | **NOT FIXED** — no upstream fix exists. Workaround: run ≤2 automations at a time (DGX vLLM capacity). |
+| **MCP `completable.js` missing** | `ERR_MODULE_NOT_FOUND` — NPM package version mismatch. Non-blocking (empty MCP config → graceful fallback) but emits 8 errors per launch and leaves orphaned processes after kill. | — | **NOT FIXED** — cosmetic, upstream image issue. |
+
+**Observed symptoms (matching community reports):**
+- All4 payment-switch simulations (`sim1`–`sim4`) dispatched at 14:50:59 UTC
+  were killed simultaneously at 15:01:02 — exactly600s.
+- After kill, runs remained stuck in `RUNNING` state forever (ghost runs, no
+  completion callback). This matches `automation#203` (closed, PR #206/#209
+  merged upstream — graceful termination on timeout).
+- Orphaned MCP server processes (`mcp-server-fetch`, `mcp-server-time`) survived
+  parent `main.py` kill — consumed ~400MB until manually cleaned up.
+- `POST /api/conversations/{id}/messages` returns **404** — messages can only
+  be sent via WebSocket. No REST-based conversation scripting possible without
+  a WS client.
+
+**Fixes applied (2026-07-20):**
+1. **600s ceiling raised**: `AUTOMATION_MAX_RUN_DURATION=14400` added to
+   `docker/agent-canvas/.env`. Container recreated. Verified live.
+2. **Orphaned MCP processes cleaned**: killed inside container via
+   `docker exec openhands-app pkill -9 -f mcp-server`. Count: 0 remaining.
+3. **Old tmux session `newfire-audit` cleared**: PIDs 2141251/2141252 no longer
+   running (was already dead).
+
+**Stable configuration for concurrent/overnight runs (recommended):**
+- Max 2 concurrent automations (DGX vLLM capacity — `qwen3.6-27B-FP8` at
+  batch=4 is tight on 91GB host).
+- Pre-bake Python venv into Docker image (avoids per-run `uv sync` overhead).
+- `AUTOMATION_MAX_RUN_DURATION=14400` (4 hours) — covers most coding tasks.
+- Use automation API (`/api/automation/v1/preset/prompt` → `dispatch`), NOT the
+  raw conversation API.
+- Monitor with `GET /api/automation/v1/{id}/runs` — poll every 30s.
+- For overnight tasks: dispatch before 22:00, check `RUNNING` status at 08:00.
 
 ### 4.4 Agent provisioning
 
