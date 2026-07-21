@@ -1,71 +1,65 @@
-# NewFire
+# llama.cpp Router Mode Test Kit
 
-NewFire is a two-machine AI homelab that hosts the NewFire AI platform. It pairs a Minisforum X1 Pro 370 (control plane) with an NVIDIA DGX Spark (GPU compute) to run local LLMs, agent orchestrators, and tenant-aware API metering for production workloads.
+Source: YouTube V2t_YRsyqeI ("Llama.cpp Router Mode: Switch Models Instantly").
 
-Target launch: **May 1, 2026.**
+This kit extracts the demo into something we can run safely on the homelab's DGX Spark (ghana) without touching the existing vLLM or Ollama services.
 
-## Architecture at a Glance
+## What it proves
+One `llama-server` process can serve many GGUF models behind a single OpenAI-compatible endpoint. Clients pick a model by name in each request; the router loads it on demand and unloads idle ones.
 
-| Role | Machine | Specs | Primary Services |
-|------|---------|-------|------------------|
-| Control Plane | Minisforum X1 Pro 370 | Ryzen AI 9 HX 370, 96 GB DDR5, 2 TB NVMe | OpenClaw, APISIX, OpenHands, OpenCode, Ollama (CPU) |
-| Compute Engine | NVIDIA DGX Spark | GB10 Grace Blackwell, 128 GB unified, 4 TB NVMe | NemoClaw, Ollama (GPU), vLLM, model workers |
+## Why we care for NewFire
+Today OpenClaw routes between Ollama (multiple resident models, each holding VRAM) and vLLM (one pinned model). Router mode collapses the Ollama side into a single endpoint with cleaner swap semantics. If the test passes, the production path is to wire OpenClaw at one new upstream and retire most of the Ollama containers.
 
-The two nodes connect over 1 Gbps LAN (192.168.1.157 and 192.168.1.158) and are remoted via Tailscale plus a self-hosted zrok2 + OpenZiti overlay. OpenRouter is wired in as a fallback cloud LLM gateway.
+## Files in this kit
+| File | Purpose |
+|---|---|
+| `models.ini` | Model registry for the router. Three models picked for the test: gemma3-4b chat, qwen2.5-coder-7b coder, deepseek-r1-distill-8b reasoner. All pulled from Hugging Face on first load. |
+| `setup-router-test.sh` | Verifies llama-server is recent, stops any prior test, launches router on 127.0.0.1:9094 inside a screen session. Loopback-only. |
+| `smoke-test.sh` | Hits `/v1/chat/completions` against each model twice, prints wall time per call so we can see the unload+reload cost honestly. |
+| `teardown.sh` | Stops the screen session, confirms the port is free, leaves the log for review. |
 
-See `AI_Homelab_Architecture.png` / `.svg` / `.pdf` for the full diagram.
+## Deploy (recommended path, runs on ghana)
 
-## Documentation
+From your Mac:
 
-The numbered docs in this repo walk through the build in order:
+```bash
+cd /Users/oluwajobamalomo/Desktop/llamacpp_router_test
+scp models.ini setup-router-test.sh smoke-test.sh teardown.sh newwave-dgx@ghana:/tmp/
+ssh newwave-dgx@ghana 'chmod +x /tmp/setup-router-test.sh /tmp/smoke-test.sh /tmp/teardown.sh && bash /tmp/setup-router-test.sh'
+```
 
-1. [`00_OVERVIEW.md`](00_OVERVIEW.md) Architecture overview, hardware roles, software stack, network layout
-2. [`01_DGX_SPARK_RECOVERY.md`](01_DGX_SPARK_RECOVERY.md) Recovery procedure for the DGX Spark node
-3. [`02_MINISFORUM_UPGRADE.md`](02_MINISFORUM_UPGRADE.md) Minisforum upgrade and hardening steps
-4. [`03_INTEGRATION_PATTERNS.md`](03_INTEGRATION_PATTERNS.md) Cross-node integration patterns (ACP, webhooks, message bus)
-5. [`04_DGX_SPARK_SETUP.md`](04_DGX_SPARK_SETUP.md) Fresh setup for the DGX Spark
-6. [`05_OPENROUTER_INTEGRATION.md`](05_OPENROUTER_INTEGRATION.md) OpenRouter proxy and key management
-7. [`06_APISIX_METERING.md`](06_APISIX_METERING.md) APISIX gateway with per-tenant metering
-8. [`07_RESOURCE_ALLOCATION.md`](07_RESOURCE_ALLOCATION.md) CPU, RAM, and VRAM budgets per service
-9. [`08_CHECKLIST.md`](08_CHECKLIST.md) Pre-launch checklist
+If setup exits with code 2, the existing llama-server is too old. The script prints the rebuild commands inline. The Phase 1 Nemotron memory already flagged this rebuild as needed, so this is a good moment to do it.
 
-Supporting material:
+After setup succeeds:
 
-- `NewFire_Gap_Map.svg`, `NewFire_Gap_Graph.svg` Eight-layer framework gap map (data and no-code builder are the largest current gaps)
-- `blueprint/` Canonical AI Operating System blueprint (8 layers, 5 agents, 7 maturity levels)
-- `progress/` Per-initiative progress logs that resume across sessions
-- `scripts/` Operational scripts for both nodes
-- `newfire_backend_docker/` Backend service that coordinates Paperclip, OpenClaw, APISIX, and NemoClaw with smart routing
-- `newfire-db-backup-20260417.sql` Database snapshot from 2026-04-17
+```bash
+ssh newwave-dgx@ghana 'bash /tmp/smoke-test.sh'
+```
 
-## Software Stack
+When done:
 
-| Component | Purpose | Host | Port |
-|-----------|---------|------|------|
-| OpenClaw | Multi-agent orchestrator and gateway | Minisforum | 18789 |
-| OpenHands | Browser-based AI dev agent | Minisforum | 3000 |
-| OpenCode | AI coding agent | Minisforum | 3002 / 3030 |
-| Ollama | Local LLM serving | Both | 11434 |
-| vLLM | High-throughput GPU inference | DGX Spark | varies |
-| NemoClaw | Tenant isolation and model management | DGX Spark | varies |
-| APISIX | API gateway with metering | Minisforum | 9080 / 9443 |
-| SIE | Embeddings and reranking (bge-m3, bge-reranker-v2-m3) | Minisforum | 8089 |
-| OpenRouter | Cloud LLM fallback gateway | Cloud | n/a |
+```bash
+ssh newwave-dgx@ghana 'bash /tmp/teardown.sh'
+```
 
-## Current Status
+## Security notes (per homelab posture)
+- Port 9094 is bound to `127.0.0.1` only. No LAN, no Tailscale, no public. To reach it from Minisforum during testing, use an SSH port forward: `ssh -L 9094:127.0.0.1:9094 newwave-dgx@ghana`.
+- No auth on the router itself, so loopback binding is the only gate during the test. Do not change `BIND=` to `0.0.0.0` without putting Cloudflare Access or a reverse proxy in front first.
+- vLLM (port 8000) and Ollama (port 11434) are untouched. Only port 9094 is added.
+- Model files are pulled from Hugging Face on first load and cached under `~/.cache/llama.cpp`. Bandwidth on first run is approximately 13 GB across the three models.
 
-The platform is live at **newfire.app** with four real tenants onboarded. Active workstreams include the NewFire Sandbox Service (NSS) for isolated agent runtimes, OpenClaw v1 as the coordinator surface, and vLLM tuning on the GB10 for the qwen3-coder-30b NVFP4 build.
+## Expected results
+- Cold load (first hit on any model) on the DGX should land around 3 to 8 seconds.
+- Same model re-hit while still resident: hundreds of milliseconds plus generation time.
+- Same model re-hit AFTER a different one was used: pays cold load again, since the default keeps only one model in memory per worker.
+- If you raise `--models-max 3` on the launch line, all three can stay warm at once (about 13 GB VRAM total), but that competes with vLLM's qwen3-coder-30b footprint, so test that variant deliberately.
 
-## Security
+## Decision checkpoint after testing
+1. Cold-load times acceptable for agent dispatch? If yes, the router is a candidate for the OpenClaw smart-routing layer.
+2. Stability over 30 minutes of sustained switching? Watch `router.log` for crashes; the multi-process design should isolate them.
+3. Memory headroom alongside vLLM? If contention is bad, the production fit is router for small models + vLLM kept for the 30b coder.
 
-Every service is fronted by Tailscale or zrok2 + OpenZiti. No service is exposed on the public internet without an authenticated tunnel. Backups are encrypted, tenant data is scoped, and the immigration-law tenant runs against local-only models.
-
-## CI
-
-GitHub Actions runs lint (`ruff`) and `pytest` on every push and PR against main — see `.github/workflows/ci.yml`. It runs on GitHub's hosted runners, so it only checks code, not against anything on the homelab network.
-
-There's also a local review helper, `scripts/ci_review.py` — run it before opening a PR and it diffs your branch against `origin/main` and asks the DGX's own `qwen3-coder-30b` model (over Tailscale) for a second look. Nothing external, no API key, no keeping the diff anywhere but your own machine and the DGX.
-
-## License
-
-Not yet specified. All material in this repository is proprietary to the NewFire project until a license is added.
+## Cleanup if we abandon the test
+```bash
+ssh newwave-dgx@ghana 'bash /tmp/teardown.sh && sudo rm -rf /opt/llamacpp-router'
+```

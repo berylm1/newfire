@@ -1,0 +1,50 @@
+terraform {
+  required_providers {
+    cozystack = {
+      source  = "cozystack/provider"
+      version = "~> 1.0"
+    }
+  }
+}
+
+provider "cozystack" {
+  api_key = var.cozystack_api_key
+}
+
+variable "cozystack_api_key" {
+  description = "API key for authenticating with Cozystack"
+  type        = string
+  sensitive   = true
+}
+
+resource "cozystack_kubernetes_cluster" "main" {
+  name               = "my-k8s-cluster"
+  region             = "us-east-1"
+  node_count         = var.node_count
+  node_instance_type = var.node_instance_type
+  k8s_version        = var.k8s_version
+}
+
+variable "node_count" {
+  description = "Number of nodes in the cluster"
+  type        = number
+  default     = 3
+}
+
+variable "node_instance_type" {
+  description = "Instance type for Kubernetes nodes"
+  type        = string
+  default     = "m5.large"
+}
+
+variable "k8s_version" {
+  description = "Kubernetes version"
+  type        = string
+  default     = "1.27"
+}
+
+output "kubeconfig" {
+  value     = cozystack_kubernetes_cluster.main.kubeconfig
+  sensitive = true
+}
+
