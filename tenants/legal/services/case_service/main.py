@@ -35,7 +35,7 @@ STORE_PATH = os.path.join(os.path.dirname(__file__), "cases.json")
 # Case record fields that hold a dict of sub-fields rather than a single
 # scalar value. A PATCH touching one of these merges into the existing dict
 # instead of replacing it outright — see update_case.
-DICT_FIELDS = ("contact", "key_dates", "fee_status")
+DICT_FIELDS = ("contact", "key_dates", "fee_status", "documents", "financial_snapshot")
 
 DEFAULT_FEE_STATUS = {"total_fee": None, "amount_paid": None, "status": "unpaid", "notes": ""}
 
@@ -49,6 +49,15 @@ class CaseIn(BaseModel):
     case_type: str = ""
     key_dates: dict = Field(default_factory=dict)
     fee_status: dict = Field(default_factory=lambda: dict(DEFAULT_FEE_STATUS))
+    # Which of case_type's required documents are on file yet, e.g.
+    # {"passport_copy": True, "i94_record": False}. Same free-form-dict
+    # philosophy as key_dates: case_jeopardy_check's playbooks.py owns what's
+    # "required" per case_type, this just tracks what's actually in hand.
+    documents: dict = Field(default_factory=dict)
+    # Case-type-specific financial facts (e.g. {"funds_available": 15000,
+    # "program_cost": 12000} for a change-of-status financial-sufficiency
+    # check). Not every case type needs this, so it's fine empty.
+    financial_snapshot: dict = Field(default_factory=dict)
     assigned_attorney: str = ""
     notes: str = ""
 
@@ -59,6 +68,8 @@ class CaseUpdate(BaseModel):
     case_type: str | None = None
     key_dates: dict | None = None
     fee_status: dict | None = None
+    documents: dict | None = None
+    financial_snapshot: dict | None = None
     assigned_attorney: str | None = None
     notes: str | None = None
 
@@ -87,6 +98,8 @@ def create_case(case: CaseIn) -> dict:
         "case_type": case.case_type,
         "key_dates": case.key_dates,
         "fee_status": case.fee_status,
+        "documents": case.documents,
+        "financial_snapshot": case.financial_snapshot,
         "assigned_attorney": case.assigned_attorney,
         "notes": case.notes,
         "created_at": now,

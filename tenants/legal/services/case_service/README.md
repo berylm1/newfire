@@ -29,6 +29,16 @@ One JSON object per client matter:
   null, "status": "paid" | "partial" | "unpaid", "notes": str}`. This is
   the firm's own fee for handling the case, not a government filing fee —
   the two are never the same number and shouldn't be conflated.
+- `documents` — a flexible dict of `{document_key: bool}` tracking which of
+  a case type's required documents (see `case_jeopardy_check/playbooks.py`)
+  are actually on file, e.g. `{"passport_copy": true, "i94_record": false}`.
+  This service doesn't know or care what's "required" for a given
+  `case_type` — that's the rules engine's job; this just tracks what's in
+  hand.
+- `financial_snapshot` — a flexible dict for case-type-specific financial
+  facts, e.g. `{"funds_available": 15000, "program_cost": 12000}` for a
+  change-of-status financial-sufficiency check. Empty for case types that
+  don't need one.
 - `created_at`, `updated_at`.
 
 ## Endpoints
@@ -44,12 +54,14 @@ filter. Empty list, not a 404, when the tenant has no cases yet.
 case belongs to a different tenant.
 
 `PATCH /cases/{tenant_id}/{case_id}` — partial update. Any field can be
-sent; omitted fields are left alone. For the three dict-valued fields
-(`contact`, `key_dates`, `fee_status`), the provided dict is **merged**
-into the existing one rather than replacing it — `PATCH` with
-`{"key_dates": {"filing_deadline": "2026-08-01"}}` updates just that one
-date without erasing `visa_expiration` or `priority_date` on the same
-record. Bumps `updated_at`. 404 if missing or wrong tenant.
+sent; omitted fields are left alone. For the dict-valued fields
+(`contact`, `key_dates`, `fee_status`, `documents`, `financial_snapshot`),
+the provided dict is **merged** into the existing one rather than
+replacing it — `PATCH` with `{"key_dates": {"filing_deadline":
+"2026-08-01"}}` updates just that one date without erasing
+`visa_expiration` or `priority_date` on the same record, and `PATCH` with
+`{"documents": {"passport_copy": true}}` checks off one document without
+touching the others. Bumps `updated_at`. 404 if missing or wrong tenant.
 
 `GET /health` — liveness check.
 

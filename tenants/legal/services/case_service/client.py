@@ -21,6 +21,8 @@ def create_case(
     case_type: str = "",
     key_dates: dict | None = None,
     fee_status: dict | None = None,
+    documents: dict | None = None,
+    financial_snapshot: dict | None = None,
     assigned_attorney: str = "",
     notes: str = "",
 ) -> dict:
@@ -39,6 +41,10 @@ def create_case(
         payload["key_dates"] = key_dates
     if fee_status is not None:
         payload["fee_status"] = fee_status
+    if documents is not None:
+        payload["documents"] = documents
+    if financial_snapshot is not None:
+        payload["financial_snapshot"] = financial_snapshot
 
     response = requests.post(f"{BASE_URL}/cases", json=payload, timeout=5)
     response.raise_for_status()
@@ -68,6 +74,8 @@ def update_case(
     case_type: str | None = None,
     key_dates: dict | None = None,
     fee_status: dict | None = None,
+    documents: dict | None = None,
+    financial_snapshot: dict | None = None,
     assigned_attorney: str | None = None,
     notes: str | None = None,
 ) -> dict:
@@ -77,6 +85,8 @@ def update_case(
         "case_type": case_type,
         "key_dates": key_dates,
         "fee_status": fee_status,
+        "documents": documents,
+        "financial_snapshot": financial_snapshot,
         "assigned_attorney": assigned_attorney,
         "notes": notes,
     }

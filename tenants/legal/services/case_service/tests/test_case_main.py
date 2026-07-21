@@ -39,6 +39,8 @@ def test_create_case_applies_defaults(tmp_path, monkeypatch):
     assert body["case_type"] == ""
     assert body["key_dates"] == {}
     assert body["fee_status"] == {"total_fee": None, "amount_paid": None, "status": "unpaid", "notes": ""}
+    assert body["documents"] == {}
+    assert body["financial_snapshot"] == {}
     assert body["assigned_attorney"] == ""
     assert body["notes"] == ""
     assert "id" in body
@@ -163,6 +165,26 @@ def test_patch_merges_fee_status_without_erasing_others(tmp_path, monkeypatch):
     assert response.status_code == 200
     fee_status = response.json()["fee_status"]
     assert fee_status == {"total_fee": 3500, "amount_paid": 1500, "status": "partial", "notes": ""}
+
+
+def test_patch_merges_documents_without_erasing_others(tmp_path, monkeypatch):
+    client = _test_client(tmp_path, monkeypatch)
+    created = _create_case(client, client_name="A", documents={"passport_copy": True, "i94_record": False}).json()
+
+    response = client.patch(f"/cases/acme-legal/{created['id']}", json={"documents": {"i94_record": True}})
+
+    assert response.status_code == 200
+    assert response.json()["documents"] == {"passport_copy": True, "i94_record": True}
+
+
+def test_patch_merges_financial_snapshot_without_erasing_others(tmp_path, monkeypatch):
+    client = _test_client(tmp_path, monkeypatch)
+    created = _create_case(client, client_name="A", financial_snapshot={"funds_available": 10000}).json()
+
+    response = client.patch(f"/cases/acme-legal/{created['id']}", json={"financial_snapshot": {"program_cost": 12000}})
+
+    assert response.status_code == 200
+    assert response.json()["financial_snapshot"] == {"funds_available": 10000, "program_cost": 12000}
 
 
 def test_patch_updates_scalar_field_and_bumps_updated_at(tmp_path, monkeypatch):

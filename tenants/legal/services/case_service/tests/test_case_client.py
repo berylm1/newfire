@@ -41,12 +41,16 @@ def test_create_case_includes_provided_optional_fields(mock_post):
         contact={"email": "jane@example.com"},
         key_dates={"filing_deadline": "2026-08-01"},
         fee_status={"status": "paid"},
+        documents={"passport_copy": True},
+        financial_snapshot={"funds_available": 10000},
     )
 
     payload = mock_post.call_args.kwargs["json"]
     assert payload["contact"] == {"email": "jane@example.com"}
     assert payload["key_dates"] == {"filing_deadline": "2026-08-01"}
     assert payload["fee_status"] == {"status": "paid"}
+    assert payload["documents"] == {"passport_copy": True}
+    assert payload["financial_snapshot"] == {"funds_available": 10000}
 
 
 @patch("case_service.client.requests.get")
