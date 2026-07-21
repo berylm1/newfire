@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **55.7h** across 11 days.
+Total hours logged: **60.8h** across 11 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -56,4 +56,6 @@ Total hours logged: **55.7h** across 11 days.
 |  | 0.1h | refresh worklog |
 | | **11.3h** | *day total* |
 | 2026-07-21 | 3.5h | add case_jeopardy_check rules engine for Phase 5 |
-| | **3.5h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 5h | add visa_bulletin_service and visa_bulletin_check for Phase 8 |
+| | **8.6h** | *day total* |
