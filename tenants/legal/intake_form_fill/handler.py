@@ -18,6 +18,13 @@ happened is exactly the "low-stakes/routine" tier from the autonomy-
 tiering direction — nothing here resembles legal judgment. The attorney
 still reviews the new case; this just means they aren't the bottleneck for
 a client answering four questions.
+
+Requirement #7 (multi-language intake) is layered on top via
+translation.py: the client's language is detected on their first message
+and every outgoing message is translated into it; the only field where
+language matters for *parsing* is a date, so that's the only answer kind
+translated back to English before validation. Names and emails pass
+through untouched — see translation.py's docstring for why.
 """
 
 import json
@@ -30,9 +37,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services"))
 from activity_log_service.client import log_event
 from case_service.client import create_case
 from form_schemas import FORM_SCHEMAS
-
-DEFAULT_MODEL = "glm4:9b"
-DEFAULT_BASE_URL = "http://100.88.112.5:11434/v1"
+from translation import detect_case_type_and_language, translate_to_english, translate_to_language
 
 TENANT_ID = "hawthorn-pell"
 STATE_PATH = os.environ.get(
@@ -41,6 +46,12 @@ STATE_PATH = os.environ.get(
 
 DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%B %d, %Y", "%B %d %Y")
 CLARIFYING_QUESTION = "Sorry, could you tell me a bit more about what kind of application this is for?"
+DATE_REPROMPT = "I didn't quite catch that date — could you send it as YYYY-MM-DD?"
+EMAIL_REPROMPT = "That doesn't look like a valid email — could you double check it?"
+# No {name} placeholder here on purpose -- the name is prepended after
+# translation, never handed to the LLM as part of the sentence it's
+# translating. See _complete_intake.
+CONFIRMATION_TEMPLATE = "we've got everything we need to get started. Someone from the firm will follow up with you soon."
 
 
 def _load_state() -> dict:
@@ -53,25 +64,6 @@ def _load_state() -> dict:
 def _save_state(state: dict) -> None:
     with open(STATE_PATH, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
-
-
-def _classify_case_type(message: str) -> str | None:
-    from langchain_openai import ChatOpenAI
-
-    base_url = os.environ.get("LLM_BASE_URL", DEFAULT_BASE_URL)
-    api_key = os.environ.get("LLM_API_KEY", "ollama")
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODEL)
-    llm = ChatOpenAI(api_key=api_key, base_url=base_url, model=model)
-
-    case_types = ", ".join(FORM_SCHEMAS.keys())
-    prompt = (
-        "Classify what kind of immigration matter this message is about. Respond with ONLY one of "
-        f'these exact strings, no other text: {case_types}, or "unclear" if you can\'t tell.\n\n'
-        f"Message: {message}"
-    )
-    response = llm.invoke(prompt)
-    case_type = str(response.content).strip().strip('"').strip("'")
-    return case_type if case_type in FORM_SCHEMAS else None
 
 
 def _parse_date_answer(text: str) -> str | None:
@@ -107,6 +99,7 @@ def _complete_intake(phone: str, convo: dict) -> str:
     answers = convo["answers"]
     contact = answers.get("contact", {})
     contact["whatsapp"] = phone
+    contact["preferred_language"] = convo["language"]
     case = create_case(
         tenant_id=TENANT_ID,
         client_name=answers.get("client_name", "Unknown"),
@@ -119,10 +112,10 @@ def _complete_intake(phone: str, convo: dict) -> str:
         urgency="low",
         summary=f"New {convo['case_type']} intake completed via conversational form-fill: {case['client_name']}.",
     )
-    return (
-        f"Thanks, {case['client_name']} — we've got everything we need to get started. "
-        "Someone from the firm will follow up with you soon."
-    )
+    # The name is prepended here, after translation, in its original form --
+    # never passed to the LLM as part of the sentence being translated.
+    translated_body = translate_to_language(CONFIRMATION_TEMPLATE, convo["language"])
+    return f"Thanks, {case['client_name']} — {translated_body}"
 
 
 def handle_message(phone: str, message: str) -> str:
@@ -130,27 +123,37 @@ def handle_message(phone: str, message: str) -> str:
     convo = all_state.get(phone)
 
     if convo is None:
-        case_type = _classify_case_type(message)
+        case_type, language = detect_case_type_and_language(message, list(FORM_SCHEMAS.keys()))
         if case_type is None:
-            return CLARIFYING_QUESTION
-        convo = {"case_type": case_type, "answers": {}, "step": 0}
+            return translate_to_language(CLARIFYING_QUESTION, language)
+        convo = {"case_type": case_type, "language": language, "answers": {}, "step": 0}
         all_state[phone] = convo
         _save_state(all_state)
-        return _next_question(case_type, 0)
+        return translate_to_language(_next_question(case_type, 0), language)
 
+    language = convo["language"]
     field_path, _question = FORM_SCHEMAS[convo["case_type"]][convo["step"]]
     kind = _field_kind(field_path)
 
     if kind == "date":
-        parsed = _parse_date_answer(message)
+        # Only the date kind needs translating back to English first -- a
+        # client can write the month name in their own language, and the
+        # parser below only recognizes English month names.
+        english_message = translate_to_english(message, language)
+        parsed = _parse_date_answer(english_message)
         if parsed is None:
-            return "I didn't quite catch that date — could you send it as YYYY-MM-DD?"
+            return translate_to_language(DATE_REPROMPT, language)
         value = parsed
     elif kind == "email":
+        # Never translated -- an email address isn't natural-language
+        # content, and running it through an LLM risks it being "corrected"
+        # into something invalid.
         if "@" not in message:
-            return "That doesn't look like a valid email — could you double check it?"
+            return translate_to_language(EMAIL_REPROMPT, language)
         value = message.strip()
     else:
+        # client_name -- never translated. A name is a proper noun, not
+        # something to render into another language.
         value = message.strip()
 
     _set_nested(convo["answers"], field_path, value)
@@ -160,7 +163,7 @@ def handle_message(phone: str, message: str) -> str:
     if next_question is not None:
         all_state[phone] = convo
         _save_state(all_state)
-        return next_question
+        return translate_to_language(next_question, language)
 
     reply = _complete_intake(phone, convo)
     del all_state[phone]

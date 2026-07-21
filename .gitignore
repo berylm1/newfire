@@ -11,6 +11,7 @@ sent_log.json
 attorney_contacts.json
 bulletin_cache.json
 conversation_state.json
+translation_cache.json
 
 # Secrets / credentials
 **/.ssh/**

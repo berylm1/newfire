@@ -23,12 +23,14 @@ tenant.
 
 ## How a conversation runs
 
-1. **First message from a new number** — `_classify_case_type` (one LLM
-   call, same pattern as `intake_conflict_check`'s matter-type extraction)
-   figures out which of the five case types (`form_schemas.py`) the
-   message is about. If it can't tell, it asks a clarifying question and
-   doesn't save any state — the next message tries classification again
-   cold.
+1. **First message from a new number** — `detect_case_type_and_language`
+   (`translation.py`, one combined LLM call, same "single JSON extraction"
+   pattern as `intake_conflict_check`'s matter-type extraction) figures out
+   both which of the five case types (`form_schemas.py`) the message is
+   about *and* what language it's written in. If the case type can't be
+   determined, it asks a clarifying question (translated into whatever
+   language was detected) and doesn't save any state — the next message
+   tries classification again cold.
 2. **Every message after that** — the client's message is validated
    against the *current* question's expected kind (a date, an email, or
    free text) and, if it passes, recorded at the right nested path in the
@@ -40,6 +42,37 @@ tenant.
    with everything collected, an `activity_log_service` event so the
    attorney sees a new intake came in, the phone number's state is
    deleted, and the client gets a plain confirmation message.
+
+## Multi-language intake (requirement #7)
+
+Layered on top of the flow above via `translation.py`, not a rewrite of
+it. Every outgoing message — questions, reprompts, the confirmation — gets
+translated into the language detected on the client's first message.
+Coming back the other way, only **dates** get translated to English before
+validation; the parser only recognizes English month names, so a client
+writing "15 de marzo de 2024" needs that translated before
+`_parse_date_answer` can read it. Names and email addresses are never
+translated in either direction — neither is natural-language content, and
+running a name through an LLM risks it being "corrected" into something
+that isn't what the client actually goes by. The client's `client_name` is
+also never handed to the LLM as part of a sentence being translated (see
+`_complete_intake`): the confirmation template has no name in it at all,
+and the name is prepended in its original form after translation.
+
+Self-hosted only (same DGX/Ollama endpoint every other agent here uses —
+no external translation API, per the self-hosted mandate). Outgoing
+translations are cached (`translation_cache.json`, keyed by language +
+source text) since the same handful of questions repeat across every
+conversation in a given language; incoming answers aren't cached, since
+they're per-client and rarely repeat. English conversations make zero
+translation-related LLM calls — both `translate_to_language` and
+`translate_to_english` return their input unchanged before touching the
+LLM at all.
+
+The detected language is stored on the case record too
+(`contact.preferred_language`), so it's available to whatever eventually
+handles ongoing client communication in this case, not just the intake
+conversation itself.
 
 ## Why so few questions per case type
 

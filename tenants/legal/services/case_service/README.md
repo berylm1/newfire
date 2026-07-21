@@ -15,8 +15,10 @@ One JSON object per client matter:
 - `id` — server-generated uuid.
 - `tenant_id` — scopes every record to a firm.
 - `client_name`, `assigned_attorney`, `notes` — free text.
-- `contact` — `{"email": ..., "phone": ..., "whatsapp": ...}`, all optional.
-  Not every client has all three on file.
+- `contact` — `{"email": ..., "phone": ..., "whatsapp": ..., "preferred_language": ...}`,
+  all optional. Not every client has all four on file. `preferred_language`
+  (an ISO 639-1 code) is set by `intake_form_fill` when a client completes
+  a conversational intake in a language other than English.
 - `case_type` — free-text label (`"change_of_status"`,
   `"marriage_based_green_card"`, `"asylum"`, ...). Deliberately not an enum
   or a rules engine — case-type-specific playbooks are a later phase, this
