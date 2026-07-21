@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **64.9h** across 11 days.
+Total hours logged: **68h** across 11 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -60,4 +60,6 @@ Total hours logged: **64.9h** across 11 days.
 |  | 5h | add visa_bulletin_service and visa_bulletin_check for Phase 8 |
 |  | 0.1h | refresh worklog |
 |  | 4h | add conversational intake form-fill for Phase 4 |
-| | **12.7h** | *day total* |
+|  | 0.1h | refresh worklog |
+|  | 3h | add multi-language intake to intake_form_fill for Phase 7 |
+| | **15.8h** | *day total* |
