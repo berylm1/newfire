@@ -83,7 +83,19 @@ Owns the centralized client-facing view — composes `case_service` and
 `notify_service` and logs the send to `activity_log_service`. See
 `client_hub_service/README.md` for details.
 
-All nine are swappable the same way the rest of this tenant is: point the
+**Visa Bulletin Service** (`visa_bulletin_service/`, default port 8010)
+Owns the real monthly Visa Bulletin data — fetches and parses the actual
+PDF from travel.state.gov (the HTML page is behind a Cloudflare bot-check
+a plain HTTP client can't pass; the PDF asset path isn't). `GET
+/bulletin/current` returns the parsed Final Action Dates tables
+(family-sponsored and employment-based), cached and only re-fetched when
+the cache isn't for a plausible current month. `POST /check` compares a
+category/country/priority-date against it. The only service in this
+tenant that needs outbound internet access — see
+`visa_bulletin_service/README.md` for details, including how the PDF
+parser handles multi-line category labels and page-break boilerplate.
+
+All ten are swappable the same way the rest of this tenant is: point the
 storage inside `main.py` (or `backends.py`, for `notify_service`) at a real
 database or provider and nothing calling the service needs to change.
 
@@ -100,21 +112,25 @@ uvicorn memory_service.main:app --port 8006 &
 uvicorn case_service.main:app --port 8007 &
 uvicorn notify_service.main:app --port 8008 &
 uvicorn client_hub_service.main:app --port 8009 &
+uvicorn visa_bulletin_service.main:app --port 8010 &
 ```
 
 Agents pick these up automatically via `ACTIVITY_LOG_SERVICE_URL` /
 `CONFLICTS_SERVICE_URL` / `RAG_SERVICE_URL` / `APPROVAL_SERVICE_URL` /
 `WEBHOOK_SERVICE_URL` / `MEMORY_SERVICE_URL` / `CASE_SERVICE_URL` /
-`NOTIFY_SERVICE_URL` / `CLIENT_HUB_SERVICE_URL` (default to
-`http://localhost:8001` / `http://localhost:8002` / `http://localhost:8003`
-/ `http://localhost:8004` / `http://localhost:8005` / `http://localhost:8006`
-/ `http://localhost:8007` / `http://localhost:8008` /
-`http://localhost:8009`). No code changes needed in the agents beyond
-importing `client.py` from each service instead of the old shared modules.
+`NOTIFY_SERVICE_URL` / `CLIENT_HUB_SERVICE_URL` / `VISA_BULLETIN_SERVICE_URL`
+(default to `http://localhost:8001` / `http://localhost:8002` /
+`http://localhost:8003` / `http://localhost:8004` / `http://localhost:8005`
+/ `http://localhost:8006` / `http://localhost:8007` / `http://localhost:8008`
+/ `http://localhost:8009` / `http://localhost:8010`). No code changes
+needed in the agents beyond importing `client.py` from each service
+instead of the old shared modules.
 
 In production, the first six run as systemd services on the gateway box
 (`legal-activity-log` on 8101, `legal-conflicts` on 8102, `legal-rag` on
 8103, `legal-approval` on 8104, `legal-webhook` on 8105, `legal-memory` on
-8106), each bound to `127.0.0.1` only. `case_service`, `notify_service`, and
-`client_hub_service` follow the same 8107/8108/8109 numbering but aren't
-deployed yet — this round is local-only.
+8106), each bound to `127.0.0.1` only. `case_service`, `notify_service`,
+`client_hub_service`, and `visa_bulletin_service` follow the same
+8107/8108/8109/8110 numbering but aren't deployed yet — this round is
+local-only. `visa_bulletin_service` would need real outbound internet
+access when it is deployed, unlike the loopback-only services around it.

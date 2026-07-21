@@ -43,6 +43,7 @@ def test_create_case_includes_provided_optional_fields(mock_post):
         fee_status={"status": "paid"},
         documents={"passport_copy": True},
         financial_snapshot={"funds_available": 10000},
+        visa_bulletin_tracking={"category": "F2A"},
     )
 
     payload = mock_post.call_args.kwargs["json"]
@@ -51,6 +52,7 @@ def test_create_case_includes_provided_optional_fields(mock_post):
     assert payload["fee_status"] == {"status": "paid"}
     assert payload["documents"] == {"passport_copy": True}
     assert payload["financial_snapshot"] == {"funds_available": 10000}
+    assert payload["visa_bulletin_tracking"] == {"category": "F2A"}
 
 
 @patch("case_service.client.requests.get")

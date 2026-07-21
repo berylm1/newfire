@@ -39,6 +39,12 @@ One JSON object per client matter:
   facts, e.g. `{"funds_available": 15000, "program_cost": 12000}` for a
   change-of-status financial-sufficiency check. Empty for case types that
   don't need one.
+- `visa_bulletin_tracking` — `{"category": "F2A" | "EB-2" | ..., "country":
+  "Mexico" | ..., "priority_date": "2023-05-01"}` for a case that has a
+  priority date at all (family-sponsored or employment-based green card
+  matters). `visa_bulletin_check` checks this against the current Visa
+  Bulletin (`visa_bulletin_service`). Empty for case types with no
+  priority date (asylum, naturalization, non-immigrant H-1B, ...).
 - `created_at`, `updated_at`.
 
 ## Endpoints
@@ -55,7 +61,8 @@ case belongs to a different tenant.
 
 `PATCH /cases/{tenant_id}/{case_id}` — partial update. Any field can be
 sent; omitted fields are left alone. For the dict-valued fields
-(`contact`, `key_dates`, `fee_status`, `documents`, `financial_snapshot`),
+(`contact`, `key_dates`, `fee_status`, `documents`, `financial_snapshot`,
+`visa_bulletin_tracking`),
 the provided dict is **merged** into the existing one rather than
 replacing it — `PATCH` with `{"key_dates": {"filing_deadline":
 "2026-08-01"}}` updates just that one date without erasing

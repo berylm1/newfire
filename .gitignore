@@ -9,6 +9,7 @@ memory_notes.json
 cases.json
 sent_log.json
 attorney_contacts.json
+bulletin_cache.json
 
 # Secrets / credentials
 **/.ssh/**

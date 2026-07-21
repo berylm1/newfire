@@ -23,6 +23,7 @@ def create_case(
     fee_status: dict | None = None,
     documents: dict | None = None,
     financial_snapshot: dict | None = None,
+    visa_bulletin_tracking: dict | None = None,
     assigned_attorney: str = "",
     notes: str = "",
 ) -> dict:
@@ -45,6 +46,8 @@ def create_case(
         payload["documents"] = documents
     if financial_snapshot is not None:
         payload["financial_snapshot"] = financial_snapshot
+    if visa_bulletin_tracking is not None:
+        payload["visa_bulletin_tracking"] = visa_bulletin_tracking
 
     response = requests.post(f"{BASE_URL}/cases", json=payload, timeout=5)
     response.raise_for_status()
@@ -76,6 +79,7 @@ def update_case(
     fee_status: dict | None = None,
     documents: dict | None = None,
     financial_snapshot: dict | None = None,
+    visa_bulletin_tracking: dict | None = None,
     assigned_attorney: str | None = None,
     notes: str | None = None,
 ) -> dict:
@@ -87,6 +91,7 @@ def update_case(
         "fee_status": fee_status,
         "documents": documents,
         "financial_snapshot": financial_snapshot,
+        "visa_bulletin_tracking": visa_bulletin_tracking,
         "assigned_attorney": assigned_attorney,
         "notes": notes,
     }

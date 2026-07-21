@@ -35,7 +35,7 @@ STORE_PATH = os.path.join(os.path.dirname(__file__), "cases.json")
 # Case record fields that hold a dict of sub-fields rather than a single
 # scalar value. A PATCH touching one of these merges into the existing dict
 # instead of replacing it outright — see update_case.
-DICT_FIELDS = ("contact", "key_dates", "fee_status", "documents", "financial_snapshot")
+DICT_FIELDS = ("contact", "key_dates", "fee_status", "documents", "financial_snapshot", "visa_bulletin_tracking")
 
 DEFAULT_FEE_STATUS = {"total_fee": None, "amount_paid": None, "status": "unpaid", "notes": ""}
 
@@ -58,6 +58,12 @@ class CaseIn(BaseModel):
     # "program_cost": 12000} for a change-of-status financial-sufficiency
     # check). Not every case type needs this, so it's fine empty.
     financial_snapshot: dict = Field(default_factory=dict)
+    # {"category": "F2A", "country": "Mexico", "priority_date": "2023-05-01"}
+    # for a case that has a priority date at all (family-sponsored or
+    # employment-based green card matters) -- visa_bulletin_check checks
+    # this against the current Visa Bulletin. Empty for case types with no
+    # priority date (asylum, naturalization, non-immigrant H-1B, ...).
+    visa_bulletin_tracking: dict = Field(default_factory=dict)
     assigned_attorney: str = ""
     notes: str = ""
 
@@ -70,6 +76,7 @@ class CaseUpdate(BaseModel):
     fee_status: dict | None = None
     documents: dict | None = None
     financial_snapshot: dict | None = None
+    visa_bulletin_tracking: dict | None = None
     assigned_attorney: str | None = None
     notes: str | None = None
 
@@ -100,6 +107,7 @@ def create_case(case: CaseIn) -> dict:
         "fee_status": case.fee_status,
         "documents": case.documents,
         "financial_snapshot": case.financial_snapshot,
+        "visa_bulletin_tracking": case.visa_bulletin_tracking,
         "assigned_attorney": case.assigned_attorney,
         "notes": case.notes,
         "created_at": now,

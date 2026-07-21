@@ -41,6 +41,7 @@ def test_create_case_applies_defaults(tmp_path, monkeypatch):
     assert body["fee_status"] == {"total_fee": None, "amount_paid": None, "status": "unpaid", "notes": ""}
     assert body["documents"] == {}
     assert body["financial_snapshot"] == {}
+    assert body["visa_bulletin_tracking"] == {}
     assert body["assigned_attorney"] == ""
     assert body["notes"] == ""
     assert "id" in body
@@ -185,6 +186,24 @@ def test_patch_merges_financial_snapshot_without_erasing_others(tmp_path, monkey
 
     assert response.status_code == 200
     assert response.json()["financial_snapshot"] == {"funds_available": 10000, "program_cost": 12000}
+
+
+def test_patch_merges_visa_bulletin_tracking_without_erasing_others(tmp_path, monkeypatch):
+    client = _test_client(tmp_path, monkeypatch)
+    created = _create_case(
+        client, client_name="A", visa_bulletin_tracking={"category": "F2A", "country": "Mexico"}
+    ).json()
+
+    response = client.patch(
+        f"/cases/acme-legal/{created['id']}", json={"visa_bulletin_tracking": {"priority_date": "2023-05-01"}}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["visa_bulletin_tracking"] == {
+        "category": "F2A",
+        "country": "Mexico",
+        "priority_date": "2023-05-01",
+    }
 
 
 def test_patch_updates_scalar_field_and_bumps_updated_at(tmp_path, monkeypatch):
