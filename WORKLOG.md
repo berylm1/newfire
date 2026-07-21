@@ -1,6 +1,6 @@
 # NewFire Worklog
 
-Total hours logged: **52.1h** across 10 days.
+Total hours logged: **55.7h** across 11 days.
 
 | Date | Hours | Description |
 |---|---|---|
@@ -53,4 +53,7 @@ Total hours logged: **52.1h** across 10 days.
 |  | 2h | add client_hub_service composing case and notify for Phase 3 |
 |  | 0.1h | refresh worklog |
 |  | 0.5h | allow browser CORS on client_hub_service for the demo UI |
-| | **11.2h** | *day total* |
+|  | 0.1h | refresh worklog |
+| | **11.3h** | *day total* |
+| 2026-07-21 | 3.5h | add case_jeopardy_check rules engine for Phase 5 |
+| | **3.5h** | *day total* |
